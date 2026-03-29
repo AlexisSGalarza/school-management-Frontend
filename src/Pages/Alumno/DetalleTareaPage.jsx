@@ -19,6 +19,11 @@ const TAREA = {
 const ALLOWED_TYPES = ['PDF', 'DOCX', 'PPTX', 'XLSX', 'JPG', 'PNG', 'ZIP', 'RAR']
 const BLOCKED_TYPES = ['MP4', 'AVI', 'MOV', 'MKV', 'WMV']
 const MAX_MB = 30
+
+const MI_HISTORIAL = [
+    { id: 3, intento: 3, fecha: '28 Mar 2026 · 14:32', tipo: 'archivo', nombre: 'proyecto_final_v3.zip', tamaño: '4.2 MB', calificacion: null, comentario: '', estado: 'pendiente' },
+    { id: 2, intento: 2, fecha: '27 Mar 2026 · 10:15', tipo: 'archivo', nombre: 'proyecto_final_v2.zip', tamaño: '3.8 MB', calificacion: 8.5, comentario: 'Buen avance, falta validación de formularios y manejo de errores en las peticiones a la API.', estado: 'calificado' },
+]
 // ─────────────────────────────────────────────────────────────
 
 function isUrgent(fecha) {
@@ -34,6 +39,7 @@ export default function DetalleTareaPage() {
     const [videoLink, setVideoLink] = useState('')
     const [uploading, setUploading] = useState(false)
     const [uploadSuccess, setUploadSuccess] = useState(false)
+    const [historialOpen, setHistorialOpen] = useState(false)
 
     const urgent = isUrgent(TAREA.fechaLimite)
 
@@ -108,6 +114,34 @@ export default function DetalleTareaPage() {
                     </div>
                     <p className="text-sm text-gray-600 mt-4 leading-relaxed">{TAREA.descripcion}</p>
                 </Card>
+
+                {/* Retroalimentación del docente */}
+                {MI_HISTORIAL.some(e => e.estado === 'calificado') && (() => {
+                    const ultima = MI_HISTORIAL.find(e => e.estado === 'calificado')
+                    const gradeColor = ultima.calificacion >= 9 ? '#10b981' : ultima.calificacion >= 7 ? '#EFB11D' : '#E43D12'
+                    return (
+                        <Card>
+                            <h2 className="text-sm font-bold text-[#3d3d3d] mb-4">💬 Retroalimentación del docente</h2>
+                            <div className="flex gap-4">
+                                <div
+                                    className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center"
+                                    style={{ background: gradeColor + '18' }}
+                                >
+                                    <span className="text-2xl font-black" style={{ color: gradeColor }}>
+                                        {ultima.calificacion.toFixed(1)}
+                                    </span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs text-gray-400 mb-2">Intento #{ultima.intento} · {ultima.fecha}</p>
+                                    <div className="bg-[#EBE9E1] rounded-2xl rounded-tl-none p-3">
+                                        <p className="text-xs font-bold mb-1" style={{ color: 'var(--color-secondary)' }}>Dr. Martínez</p>
+                                        <p className="text-sm text-gray-600 leading-relaxed">{ultima.comentario}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </Card>
+                    )
+                })()}
 
                 {/* Zona de entrega */}
                 <Card>
@@ -229,6 +263,49 @@ export default function DetalleTareaPage() {
                         </div>
                     )}
                 </Card>
+
+                {/* Historial de entregas */}
+                {MI_HISTORIAL.length > 0 && (
+                    <Card>
+                        <button
+                            onClick={() => setHistorialOpen(h => !h)}
+                            className="w-full flex items-center justify-between"
+                        >
+                            <h2 className="text-sm font-bold text-[#3d3d3d]">
+                                📂 Historial de entregas
+                                <span className="ml-2 text-xs font-normal text-gray-400">
+                                    ({MI_HISTORIAL.length} intento{MI_HISTORIAL.length > 1 ? 's' : ''})
+                                </span>
+                            </h2>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                                className={`text-gray-400 transition-transform ${historialOpen ? 'rotate-180' : ''}`}>
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
+                        </button>
+                        {historialOpen && (
+                            <div className="mt-4 space-y-2">
+                                {MI_HISTORIAL.map(e => (
+                                    <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#EBE9E180' }}>
+                                        <span className="text-xl flex-shrink-0">{e.tipo === 'link' ? '🔗' : '📎'}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-semibold text-[#3d3d3d] truncate">{e.nombre}</p>
+                                            <p className="text-xs text-gray-400">{e.fecha}{e.tamaño ? ` · ${e.tamaño}` : ''}</p>
+                                        </div>
+                                        <div className="text-right flex-shrink-0">
+                                            {e.calificacion !== null ? (
+                                                <span className="text-base font-black" style={{ color: e.calificacion >= 9 ? '#10b981' : e.calificacion >= 7 ? '#EFB11D' : '#E43D12' }}>
+                                                    {e.calificacion.toFixed(1)}
+                                                </span>
+                                            ) : (
+                                                <Badge variant="muted">Pendiente</Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </Card>
+                )}
             </div>
         </AppShell>
     )

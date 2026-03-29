@@ -1,29 +1,98 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { createPortal } from 'react-dom'
 import AppShell from '../../Components/Layout/AppShell'
 import Badge from '../../Components/UI/Badge'
+import { GRUPOS, CICLOS } from '../../data/mockAcademicStructure'
+
+// ID del alumno simulado (el que está logueado)
+const MY_ALUMNO_ID = 1
 
 // ── Mock data ────────────────────────────────────────────────
-const materias = [
-    { id: 1, nombre: 'Desarrollo Web', clave: 'DW-301', docente: 'Dr. Martínez', grupo: 'Grupo A', tareasNuevas: 2, color: '#E43D12' },
-    { id: 2, nombre: 'Física II', clave: 'FIS-202', docente: 'Ing. Ramírez', grupo: 'Grupo B', tareasNuevas: 1, color: '#D6536D' },
-    { id: 3, nombre: 'Cálculo Integral', clave: 'MAT-303', docente: 'Lic. Herrera', grupo: 'Grupo A', tareasNuevas: 0, color: '#EFB11D' },
-    { id: 4, nombre: 'Español', clave: 'ESP-101', docente: 'Lic. Torres', grupo: 'Grupo C', tareasNuevas: 0, color: '#FFA2B6' },
-    { id: 5, nombre: 'Programación OOP', clave: 'PRG-204', docente: 'Ing. Castro', grupo: 'Grupo A', tareasNuevas: 3, color: '#E43D12' },
-    { id: 6, nombre: 'Base de Datos', clave: 'BD-205', docente: 'Dr. Sandoval', grupo: 'Grupo B', tareasNuevas: 0, color: '#D6536D' },
-]
+const COLORES = ['#E43D12', '#D6536D', '#EFB11D', '#FFA2B6', '#7c3aed', '#0891b2']
+
+function grupoToMateria(g, idx) {
+    return {
+        id: g.id,
+        nombre: g.materia,
+        clave: g.clave,
+        docente: g.docente,
+        grupo: g.clave,
+        ciclo: CICLOS.find(c => c.id === g.cicloId)?.nombre ?? '—',
+        tareasNuevas: 0,
+        color: COLORES[idx % COLORES.length],
+    }
+}
+
+// Simula las materias iniciales del alumno
+const INITIAL_MATERIAS = GRUPOS
+    .filter(g => g.alumnos.includes(MY_ALUMNO_ID))
+    .map(grupoToMateria)
 // ─────────────────────────────────────────────────────────────
 
 export default function MateriasPage() {
     const navigate = useNavigate()
+    const [materias, setMaterias] = useState(INITIAL_MATERIAS)
+    const [codigoModal, setCodigoModal] = useState(false)
+    const [codigo, setCodigo] = useState('')
+    const [codigoError, setCodigoError] = useState('')
+    const [confirmGrupo, setConfirmGrupo] = useState(null)   // grupo encontrado, esperando confirm
+    const [toasts, setToasts] = useState([])
+
+    function addToast(msg, type = 'success') {
+        const id = Date.now()
+        setToasts(prev => [...prev, { id, msg, type }])
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500)
+    }
+
+    function openModal() {
+        setCodigo('')
+        setCodigoError('')
+        setConfirmGrupo(null)
+        setCodigoModal(true)
+    }
+
+    function handleBuscar(e) {
+        e.preventDefault()
+        const trimmed = codigo.trim().toUpperCase()
+        if (!trimmed) { setCodigoError('Ingresa el código que te compartió tu docente'); return }
+        const grupo = GRUPOS.find(g => (g.codigo ?? '').toUpperCase() === trimmed)
+        if (!grupo) { setCodigoError('Código no encontrado. Verifica que lo hayas escrito correctamente.'); return }
+        if (grupo.alumnos.includes(MY_ALUMNO_ID) || materias.some(m => m.id === grupo.id)) {
+            setCodigoError('Ya estás inscrito en este grupo.'); return
+        }
+        setCodigoError('')
+        setConfirmGrupo(grupo)
+    }
+
+    function handleConfirmar() {
+        const idx = materias.length
+        setMaterias(prev => [...prev, grupoToMateria(confirmGrupo, idx)])
+        const ciclo = CICLOS.find(c => c.id === confirmGrupo.cicloId)
+        addToast(`¡Inscrito en ${confirmGrupo.materia} (${confirmGrupo.clave})!`)
+        setCodigoModal(false)
+        setConfirmGrupo(null)
+        setCodigo('')
+        void ciclo
+    }
 
     return (
         <AppShell>
             <div className="max-w-6xl mx-auto space-y-6">
 
                 {/* Header */}
-                <div>
-                    <h1 className="text-2xl font-bold text-[#3d3d3d]">Mis Materias</h1>
-                    <p className="text-sm text-gray-400 mt-0.5">Ciclo: Enero – Junio 2026 · {materias.length} materias inscritas</p>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[#3d3d3d]">Mis Materias</h1>
+                        <p className="text-sm text-gray-400 mt-0.5">Ciclo: Enero – Junio 2026 · {materias.length} materia{materias.length !== 1 ? 's' : ''} inscrita{materias.length !== 1 ? 's' : ''}</p>
+                    </div>
+                    <button
+                        onClick={openModal}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity shadow-sm"
+                        style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
+                    >
+                        🔗 Unirse con código
+                    </button>
                 </div>
 
                 {/* Grid de cards */}
@@ -31,8 +100,105 @@ export default function MateriasPage() {
                     {materias.map(m => (
                         <MateriaCard key={m.id} materia={m} onClick={() => navigate(`/alumno/materias/${m.id}`)} />
                     ))}
+                    {materias.length === 0 && (
+                        <div className="col-span-3 bg-white rounded-2xl p-12 text-center shadow-sm">
+                            <p className="text-4xl mb-3">📚</p>
+                            <p className="text-sm font-semibold text-gray-500 mb-1">Aún no tienes materias inscritas</p>
+                            <p className="text-xs text-gray-400">Usa el botón "Unirse con código" para inscribirte a un grupo</p>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {/* Modal Unirse con código */}
+            {codigoModal && createPortal(
+                <div
+                    className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+                    style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
+                    onClick={e => { if (e.target === e.currentTarget) { setCodigoModal(false) } }}
+                >
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm anim-modal-in overflow-hidden">
+                        {/* Header */}
+                        <div className="px-6 pt-6 pb-4 flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl" style={{ background: '#E43D1215' }}>🔗</div>
+                                <div>
+                                    <p className="text-base font-black text-[#3d3d3d]">Unirse con código</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">Pídele el código a tu docente o admin</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setCodigoModal(false)} className="w-8 h-8 rounded-xl bg-[#EBE9E1] flex items-center justify-center text-gray-400 hover:text-gray-600 text-sm font-bold transition-colors">✕</button>
+                        </div>
+
+                        <div className="px-6 pb-6 space-y-4">
+                            {!confirmGrupo ? (
+                                /* ── Paso 1: ingresar código ── */
+                                <form onSubmit={handleBuscar} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Código del grupo</label>
+                                        <input
+                                            type="text"
+                                            value={codigo}
+                                            onChange={e => { setCodigo(e.target.value.toUpperCase()); setCodigoError('') }}
+                                            placeholder="Ej. G41A-XK92"
+                                            maxLength={12}
+                                            className="w-full text-center text-xl font-black tracking-[0.2em] font-mono px-4 py-3.5 rounded-2xl bg-[#EBE9E1] outline-none border-2 border-transparent transition-colors placeholder:font-normal placeholder:text-sm placeholder:tracking-normal placeholder:text-gray-400"
+                                            onFocus={e => e.target.style.borderColor = '#FFA2B6'}
+                                            onBlur={e => e.target.style.borderColor = 'transparent'}
+                                            autoFocus
+                                        />
+                                        {codigoError && (
+                                            <p className="text-xs font-medium mt-2 px-1" style={{ color: '#dc2626' }}>⚠ {codigoError}</p>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button type="button" onClick={() => setCodigoModal(false)} className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors">Cancelar</button>
+                                        <button type="submit" className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>Buscar</button>
+                                    </div>
+                                </form>
+                            ) : (
+                                /* ── Paso 2: confirmar inscripción ── */
+                                <div className="space-y-4">
+                                    <div className="rounded-2xl p-4 space-y-3" style={{ background: '#E43D1208', border: '1.5px solid #E43D1220' }}>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-lg">✅</span>
+                                            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Grupo encontrado</p>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <p className="text-base font-black text-[#3d3d3d] leading-snug">{confirmGrupo.materia}</p>
+                                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                                                <span>👨‍🏫 {confirmGrupo.docente}</span>
+                                                <span>🏫 {confirmGrupo.clave}</span>
+                                                <span>📅 {CICLOS.find(c => c.id === confirmGrupo.cicloId)?.nombre ?? '—'}</span>
+                                                <span>👥 {confirmGrupo.alumnos.length}/{confirmGrupo.capacidad} alumnos</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-400 text-center">¿Confirmas que quieres unirte a este grupo?</p>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => setConfirmGrupo(null)} className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors">← Atrás</button>
+                                        <button onClick={handleConfirmar} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>Unirme ✓</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Toasts locales */}
+            {toasts.length > 0 && createPortal(
+                <div className="fixed bottom-5 right-5 z-[99999] flex flex-col gap-2 pointer-events-none">
+                    {toasts.map(t => (
+                        <div key={t.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm font-semibold pointer-events-auto anim-slide-down" style={{ background: '#f0fdf4', borderColor: '#86efac', color: '#16a34a', minWidth: '220px', maxWidth: '340px' }}>
+                            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style={{ background: '#22c55e' }}>✓</span>
+                            <span className="flex-1 leading-snug">{t.msg}</span>
+                        </div>
+                    ))}
+                </div>,
+                document.body
+            )}
         </AppShell>
     )
 }
@@ -86,3 +252,4 @@ function MateriaCard({ materia, onClick }) {
         </div>
     )
 }
+

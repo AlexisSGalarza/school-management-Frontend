@@ -8,6 +8,11 @@
   --color-background: #EBE9E1;
 }
 
+button,
+a {
+  cursor: pointer;
+}
+
 :root {
   --color-primary: #E43D12;
   --color-secondary: #D6536D;
@@ -104,6 +109,38 @@ p {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes slideFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.anim-slide-from-right {
+  animation: slideFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.anim-slide-from-left {
+  animation: slideFromLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .anim-fade {

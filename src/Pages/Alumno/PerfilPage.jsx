@@ -10,7 +10,7 @@ import Button from '../../Components/UI/Button'
 const USER = {
     nombre: 'Alexis Galarza',
     email: 'alexis.galarza@escuela.edu.mx',
-    matricula: 'A2023001',
+    matricula: '20230001',
     rol: 'Alumno',
     ciclo: 'Enero – Junio 2026',
     createdAt: '2023-08-15',

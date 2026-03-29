@@ -44,9 +44,17 @@ const tareas = [
     { id: 2, titulo: 'Ejercicio de rutas dinámicas', fechaLimite: '2026-04-05', entregada: true },
 ]
 
+const materiales = [
+    { id: 1, tipo: 'pdf', nombre: 'Guía de estudio – Parcial 2.pdf', descripcion: 'Temas: hooks, context API, React Router v7', fecha: '26 Mar 2026', tamaño: '2.4 MB' },
+    { id: 2, tipo: 'link', nombre: 'Documentación oficial React 19', url: 'https://react.dev', descripcion: 'Referencia para el proyecto final', fecha: '20 Mar 2026' },
+    { id: 3, tipo: 'pdf', nombre: 'Rúbrica Proyecto Final.pdf', descripcion: 'Criterios de evaluación y puntaje detallado', fecha: '15 Mar 2026', tamaño: '890 KB' },
+    { id: 4, tipo: 'pptx', nombre: 'Presentación Clase 8 – React Router.pptx', descripcion: '', fecha: '12 Mar 2026', tamaño: '5.1 MB' },
+]
+
 const TABS = [
     { key: 'canal', label: '💬 Canal' },
     { key: 'tareas', label: '📋 Tareas' },
+    { key: 'materiales', label: '📁 Materiales' },
 ]
 // ─────────────────────────────────────────────────────────────
 
@@ -108,6 +116,9 @@ export default function AulaVirtualPage() {
                         )}
                         {tab === 'tareas' && (
                             <TareasTab tareas={tareas} navigate={navigate} />
+                        )}
+                        {tab === 'materiales' && (
+                            <MaterialesTab materiales={materiales} />
                         )}
                     </div>
                 </div>
@@ -198,6 +209,45 @@ function TareasTab({ tareas, navigate }) {
                     </div>
                 )
             })}
+        </div>
+    )
+}
+
+const FILE_ICONS = { pdf: '📕', pptx: '📊', docx: '📄', xlsx: '📈', link: '🔗', zip: '🗄️' }
+
+function MaterialesTab({ materiales }) {
+    return (
+        <div className="space-y-2">
+            {materiales.length === 0 && (
+                <div className="text-center py-12 text-gray-400">
+                    <p className="text-3xl mb-2">📁</p>
+                    <p className="text-sm">El docente aún no ha subido materiales</p>
+                </div>
+            )}
+            {materiales.map(m => (
+                <div
+                    key={m.id}
+                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-[#EBE9E1] transition-colors group"
+                >
+                    <div
+                        className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                        style={{ background: m.tipo === 'link' ? '#E43D1212' : '#EBE9E1' }}
+                    >
+                        {FILE_ICONS[m.tipo] ?? '📄'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-[#3d3d3d] truncate">{m.nombre}</p>
+                        {m.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate">{m.descripcion}</p>}
+                        <p className="text-xs text-gray-300 mt-0.5">{m.fecha}{m.tamaño ? ` · ${m.tamaño}` : ''}</p>
+                    </div>
+                    <button
+                        className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                        style={{ background: '#E43D1210', color: 'var(--color-primary)' }}
+                    >
+                        {m.tipo === 'link' ? '🔗 Abrir' : '⬇ Descargar'}
+                    </button>
+                </div>
+            ))}
         </div>
     )
 }

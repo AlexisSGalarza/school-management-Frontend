@@ -1,0 +1,246 @@
+import { useState } from 'react'
+import AdminShell from '../../Components/Layout/AdminShell'
+import StatCard from '../../Components/UI/StatCard'
+import { MOCK_USERS } from '../../data/mockUsers'
+import { GRUPOS, MATERIAS, getCicloActivo } from '../../data/mockAcademicStructure'
+import { useNavigate } from 'react-router-dom'
+
+const cicloActivo = getCicloActivo()
+
+const stats = [
+    {
+        label: 'Alumnos Activos',
+        value: String(MOCK_USERS.filter(u => u.rol === 'Alumno' && u.activo).length),
+        icon: '🎓',
+        iconBg: '#FFA2B618',
+        change: '+3 este ciclo',
+        up: true,
+    },
+    {
+        label: 'Docentes Activos',
+        value: String(MOCK_USERS.filter(u => u.rol === 'Docente' && u.activo).length),
+        icon: '👨‍🏫',
+        iconBg: '#D6536D18',
+        change: 'Sin cambios',
+        up: null,
+    },
+    {
+        label: 'Materias en Curso',
+        value: String(MATERIAS.filter(m => m.cicloId === cicloActivo.id).length),
+        icon: '📚',
+        iconBg: '#E43D1218',
+        change: cicloActivo.nombre,
+        up: null,
+    },
+    {
+        label: 'Grupos Activos',
+        value: String(GRUPOS.filter(g => g.cicloId === cicloActivo.id).length),
+        icon: '🏫',
+        iconBg: '#EFB11D18',
+        change: `${GRUPOS.reduce((a, g) => a + g.alumnos.length, 0)} alumnos inscritos`,
+        up: true,
+    },
+]
+
+const acciones = [
+    { label: 'Registrar Usuario', icon: '➕', to: '/admin/usuarios', color: 'var(--color-primary)' },
+    { label: 'Crear Grupo', icon: '🏫', to: '/admin/estructura', color: 'var(--color-secondary)' },
+    { label: 'Generar Reporte', icon: '📊', to: '/admin/reportes', color: '#EFB11D' },
+]
+
+const ACTIVIDAD = [
+    { id: 1, icon: '👤', texto: 'Nueva alumna registrada: Ana Torres (A2024015)', tipo: 'success', tiempo: 'Hace 12 min' },
+    { id: 2, icon: '🏫', texto: 'Grupo G44A creado — Desarrollo Web Avanzado', tipo: 'success', tiempo: 'Hace 1 h' },
+    { id: 3, icon: '🎓', texto: '3 alumnos inscritos en G41A — Ing. Marcos Pérez', tipo: 'success', tiempo: 'Hace 2 h' },
+    { id: 4, icon: '📅', texto: 'Ciclo "Enero – Junio 2026" marcado como activo', tipo: 'info', tiempo: 'Hace 3 h' },
+    { id: 5, icon: '📊', texto: 'Reporte de asistencia generado por Patricia Montes', tipo: 'info', tiempo: 'Ayer' },
+]
+
+export default function DashboardAdminPage() {
+    const navigate = useNavigate()
+
+    return (
+        <AdminShell>
+            <div className="space-y-6 max-w-5xl mx-auto">
+
+                {/* Encabezado */}
+                <div>
+                    <h1 className="text-2xl font-bold text-[#3d3d3d]">Panel Administrativo</h1>
+                    <p className="text-sm text-gray-400 mt-0.5">{cicloActivo.nombre} · Vista general del sistema</p>
+                </div>
+
+                {/* Métricas */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {stats.map((s, i) => (
+                        <div
+                            key={i}
+                            className="bg-white rounded-2xl p-4 shadow-sm space-y-3"
+                        >
+                            <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold text-gray-500">{s.label}</p>
+                                <div
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
+                                    style={{ background: s.iconBg }}
+                                >
+                                    {s.icon}
+                                </div>
+                            </div>
+                            <p className="text-3xl font-black text-[#3d3d3d]">{s.value}</p>
+                            <p className={`text-xs font-medium ${s.up === true ? 'text-emerald-500' : 'text-gray-400'}`}>
+                                {s.up === true && '↑ '}{s.change}
+                            </p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid lg:grid-cols-3 gap-4">
+
+                    {/* Acciones rápidas */}
+                    <div className="bg-white rounded-2xl p-5 shadow-sm">
+                        <p className="text-sm font-bold text-[#3d3d3d] mb-4">Acciones Rápidas</p>
+                        <div className="space-y-2">
+                            {acciones.map(a => (
+                                <button
+                                    key={a.label}
+                                    onClick={() => navigate(a.to)}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                                    style={{ background: a.color }}
+                                >
+                                    <span className="text-base">{a.icon}</span>
+                                    {a.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Distribución de usuarios */}
+                    <div className="bg-white rounded-2xl p-5 shadow-sm">
+                        <p className="text-sm font-bold text-[#3d3d3d] mb-4">Distribución de Usuarios</p>
+                        <RolBar rol="Alumnos" count={MOCK_USERS.filter(u => u.rol === 'Alumno').length} total={MOCK_USERS.length} color="#FFA2B6" />
+                        <RolBar rol="Docentes" count={MOCK_USERS.filter(u => u.rol === 'Docente').length} total={MOCK_USERS.length} color="#D6536D" />
+                        <RolBar rol="Admins" count={MOCK_USERS.filter(u => u.rol === 'Admin').length} total={MOCK_USERS.length} color="#E43D12" />
+                        <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-400">
+                            <span>Total usuarios</span>
+                            <span className="font-bold text-[#3d3d3d]">{MOCK_USERS.length}</span>
+                        </div>
+                    </div>
+
+                    {/* Estado del servidor */}
+                    <ServerStatus />
+                </div>
+
+                {/* Grupos activos */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm">
+                    <p className="text-sm font-bold text-[#3d3d3d] mb-4">Grupos del Ciclo Activo</p>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-xs font-semibold text-gray-400 uppercase tracking-wide text-left border-b border-gray-100">
+                                    <th className="pb-2 pr-4">Grupo</th>
+                                    <th className="pb-2 pr-4">Materia</th>
+                                    <th className="pb-2 pr-4">Docente</th>
+                                    <th className="pb-2">Alumnos</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {GRUPOS.filter(g => g.cicloId === cicloActivo.id).map(g => (
+                                    <tr key={g.id}>
+                                        <td className="py-2.5 pr-4">
+                                            <span className="font-bold text-[#3d3d3d]">{g.clave}</span>
+                                        </td>
+                                        <td className="py-2.5 pr-4 text-gray-500 max-w-[180px] truncate">{g.materia}</td>
+                                        <td className="py-2.5 pr-4 text-gray-500 hidden sm:table-cell">{g.docente}</td>
+                                        <td className="py-2.5">
+                                            <span className="text-xs font-bold" style={{ color: 'var(--color-primary)' }}>
+                                                {g.alumnos.length}/{g.capacidad}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Actividad reciente */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm">
+                    <p className="text-sm font-bold text-[#3d3d3d] mb-4">Actividad Reciente</p>
+                    <div className="space-y-1">
+                        {ACTIVIDAD.map((a, idx) => (
+                            <div key={a.id} className="flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0">
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 mt-0.5"
+                                    style={{ background: idx === 0 ? '#E43D1210' : '#EBE9E1' }}>
+                                    {a.icon}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-[#3d3d3d] leading-snug">{a.texto}</p>
+                                    <p className="text-xs text-gray-400 mt-0.5">{a.tiempo}</p>
+                                </div>
+                                {idx === 0 && (
+                                    <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#E43D1215', color: 'var(--color-primary)' }}>Nuevo</span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+            </div>
+        </AdminShell>
+    )
+}
+
+function RolBar({ rol, count, total, color }) {
+    const pct = Math.round((count / total) * 100)
+    return (
+        <div className="mb-3">
+            <div className="flex justify-between text-xs mb-1">
+                <span className="font-medium text-[#3d3d3d]">{rol}</span>
+                <span className="text-gray-400">{count}</span>
+            </div>
+            <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+            </div>
+        </div>
+    )
+}
+
+function ServerStatus() {
+    const [online, setOnline] = useState(true)
+    return (
+        <div className="bg-white rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-bold text-[#3d3d3d]">Estado del Servidor</p>
+                <button
+                    onClick={() => setOnline(s => !s)}
+                    className="text-xs px-3 py-1 rounded-full font-semibold transition-colors"
+                    style={{
+                        background: online ? '#dcfce7' : '#fee2e2',
+                        color: online ? '#16a34a' : '#dc2626',
+                    }}
+                >
+                    {online ? 'Simular caída' : 'Restaurar'}
+                </button>
+            </div>
+            <div className="space-y-3">
+                <StatusRow label="API Principal" ok={online} />
+                <StatusRow label="Base de Datos" ok={online} />
+                <StatusRow label="Almacenamiento" ok={true} />
+                <StatusRow label="Correo (SMTP)" ok={true} />
+            </div>
+        </div>
+    )
+}
+
+function StatusRow({ label, ok }) {
+    return (
+        <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">{label}</span>
+            <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${ok ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                <span className={`text-xs font-semibold ${ok ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {ok ? 'Operativo' : 'Caído'}
+                </span>
+            </div>
+        </div>
+    )
+}

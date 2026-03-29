@@ -1,7 +1,4 @@
-/**
- * Badge – pequeña etiqueta de estado.
- * variant: 'primary' | 'secondary' | 'warning' | 'accent' | 'success' | 'muted'
- */
+
 const variants = {
     primary: 'bg-[#E43D12] text-white',
     secondary: 'bg-[#D6536D] text-white',

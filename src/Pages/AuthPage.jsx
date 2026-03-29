@@ -4,6 +4,12 @@ import SignUpForm from '../Components/Auth/SignupForm'
 
 export default function AuthPage() {
     const [mode, setMode] = useState('login')
+    const [dir, setDir] = useState('left')
+
+    function goTo(next) {
+        setDir(next === 'signup' ? 'left' : 'right')
+        setMode(next)
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 sm:p-6" style={{ backgroundColor: 'var(--color-background)' }}>
@@ -12,10 +18,12 @@ export default function AuthPage() {
             <div className="lg:hidden w-full max-w-lg">
                 <div className="bg-white rounded-3xl overflow-hidden shadow-2xl">
                     <div className="px-8 sm:px-10 py-12">
-                        {mode === 'login'
-                            ? <LoginForm onswitch={() => setMode('signup')} />
-                            : <SignUpForm onswitch={() => setMode('login')} />
-                        }
+                        <div key={mode} className={dir === 'left' ? 'anim-slide-from-right' : 'anim-slide-from-left'}>
+                            {mode === 'login'
+                                ? <LoginForm onswitch={() => goTo('signup')} />
+                                : <SignUpForm onswitch={() => goTo('login')} />
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
@@ -43,7 +51,7 @@ export default function AuthPage() {
                     }}
                 >
                     {mode === 'login' ? (
-                        <div className="space-y-6 px-4">
+                        <div key="login" className="space-y-6 px-4 anim-modal-in">
                             <div>
                                 <p className="text-5xl font-bold mb-2">¡Hola!</p>
                                 <p className="text-white/80">Estudiante</p>
@@ -71,9 +79,9 @@ export default function AuthPage() {
                             </button>
                         </div>
                     ) : (
-                        <div className="space-y-6 px-4">
+                        <div key="signup" className="space-y-6 px-4 anim-modal-in">
                             <div>
-                                <p className="text-5xl font-bold mb-2">¡Bienvenido</p>
+                                <p className="text-5xl font-bold mb-2">¡Bienvenido!</p>
                                 <p className="text-white/80">de Vuelta!</p>
                             </div>
                             <p className="text-sm leading-relaxed opacity-95 max-w-xs mx-auto">
