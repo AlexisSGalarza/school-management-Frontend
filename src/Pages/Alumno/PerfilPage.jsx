@@ -63,147 +63,147 @@ export default function PerfilPage() {
 
     return (
         <>
-        <AppShell>
-            <div className="max-w-2xl mx-auto space-y-5">
+            <AppShell>
+                <div className="max-w-2xl mx-auto space-y-5">
 
-                {/* Tarjeta de identidad */}
-                <Card className="text-center">
-                    <div className="flex justify-center mb-4">
-                        <Avatar name={USER.nombre} size="xl" />
-                    </div>
+                    {/* Tarjeta de identidad */}
+                    <Card className="text-center">
+                        <div className="flex justify-center mb-4">
+                            <Avatar name={USER.nombre} size="xl" />
+                        </div>
 
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
-                        <h1 className="text-xl font-bold text-[#3d3d3d]">{USER.nombre}</h1>
-                        {USER.activo && <Badge variant="secondary">Cuenta Activa</Badge>}
-                    </div>
-                    <p className="text-sm text-gray-400 mt-1">{USER.rol} · {USER.ciclo}</p>
+                        <div className="flex items-center justify-center gap-2 flex-wrap">
+                            <h1 className="text-xl font-bold text-[#3d3d3d]">{USER.nombre}</h1>
+                            {USER.activo && <Badge variant="secondary">Cuenta Activa</Badge>}
+                        </div>
+                        <p className="text-sm text-gray-400 mt-1">{USER.rol} · {USER.ciclo}</p>
 
-                    <hr className="border-gray-100 my-5" />
+                        <hr className="border-gray-100 my-5" />
 
-                    {/* Info rows */}
-                    <div className="space-y-3 text-left">
-                        {[
-                            { icon: '📧', label: 'Correo electrónico', value: USER.email },
-                            { icon: '🎓', label: 'Matrícula', value: USER.matricula },
-                            { icon: '🏫', label: 'Ciclo activo', value: USER.ciclo },
-                            { icon: '📅', label: 'Fecha de registro', value: new Date(USER.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) },
-                        ].map(row => (
-                            <div key={row.label} className="flex items-center gap-3 px-2">
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: '#FFA2B618' }}>
-                                    {row.icon}
+                        {/* Info rows */}
+                        <div className="space-y-3 text-left">
+                            {[
+                                { icon: '📧', label: 'Correo electrónico', value: USER.email },
+                                { icon: '🎓', label: 'Matrícula', value: USER.matricula },
+                                { icon: '🏫', label: 'Ciclo activo', value: USER.ciclo },
+                                { icon: '📅', label: 'Fecha de registro', value: new Date(USER.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) },
+                            ].map(row => (
+                                <div key={row.label} className="flex items-center gap-3 px-2">
+                                    <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: '#FFA2B618' }}>
+                                        {row.icon}
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-gray-400">{row.label}</p>
+                                        <p className="text-sm font-semibold text-[#3d3d3d]">{row.value}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
+
+                    {/* Cambiar contraseña */}
+                    <Card>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: '#E43D1218' }}>
+                                    🔒
                                 </div>
                                 <div>
-                                    <p className="text-xs text-gray-400">{row.label}</p>
-                                    <p className="text-sm font-semibold text-[#3d3d3d]">{row.value}</p>
+                                    <p className="text-sm font-semibold text-[#3d3d3d]">Contraseña</p>
+                                    <p className="text-xs text-gray-400">Última actualización: hace 30 días</p>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </Card>
-
-                {/* Cambiar contraseña */}
-                <Card>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: '#E43D1218' }}>
-                                🔒
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold text-[#3d3d3d]">Contraseña</p>
-                                <p className="text-xs text-gray-400">Última actualización: hace 30 días</p>
-                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => { setEditingPassword(true); setPwSuccess(false) }}
+                            >
+                                Cambiar
+                            </Button>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => { setEditingPassword(true); setPwSuccess(false) }}
-                        >
-                            Cambiar
-                        </Button>
-                    </div>
 
-                    {pwSuccess && (
-                        <div className="mt-4 rounded-xl p-3 text-center" style={{ background: '#10b98118', border: '1px solid #10b98130' }}>
-                            <p className="text-sm font-semibold text-emerald-600">✅ Contraseña actualizada correctamente</p>
-                        </div>
-                    )}
-                </Card>
-
-                {/* Resumen académico */}
-                <div>
-                    <h2 className="text-sm font-bold text-[#3d3d3d] uppercase tracking-wide mb-3">Resumen académico</h2>
-                    <div className="grid grid-cols-3 gap-4">
-                        {resumenAcademico.map(item => (
-                            <div key={item.label} className="bg-white rounded-2xl shadow-sm p-4 text-center">
-                                <p className="text-2xl font-bold text-[#3d3d3d]">{item.value}</p>
-                                <p className="text-xs text-gray-400 mt-1">{item.label}</p>
+                        {pwSuccess && (
+                            <div className="mt-4 rounded-xl p-3 text-center" style={{ background: '#10b98118', border: '1px solid #10b98130' }}>
+                                <p className="text-sm font-semibold text-emerald-600">✅ Contraseña actualizada correctamente</p>
                             </div>
-                        ))}
+                        )}
+                    </Card>
+
+                    {/* Resumen académico */}
+                    <div>
+                        <h2 className="text-sm font-bold text-[#3d3d3d] uppercase tracking-wide mb-3">Resumen académico</h2>
+                        <div className="grid grid-cols-3 gap-4">
+                            {resumenAcademico.map(item => (
+                                <div key={item.label} className="bg-white rounded-2xl shadow-sm p-4 text-center">
+                                    <p className="text-2xl font-bold text-[#3d3d3d]">{item.value}</p>
+                                    <p className="text-xs text-gray-400 mt-1">{item.label}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-        </AppShell>
+            </AppShell>
 
-        {/* ── MODAL CAMBIAR CONTRASEÑA (portal → cubre toda la pantalla) ── */}
-        {editingPassword && createPortal(
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 anim-fade">
-                <div className="absolute inset-0 bg-black/40" onClick={closePwModal} />
-                <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm anim-modal-in">
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
-                        <div className="flex items-center gap-3">
-                            <div
-                                className="w-9 h-9 rounded-xl flex items-center justify-center text-base"
-                                style={{ background: '#E43D1218' }}
-                            >🔒</div>
-                            <h2 className="text-base font-bold text-[#3d3d3d]">Cambiar contraseña</h2>
-                        </div>
-                        <button
-                            onClick={closePwModal}
-                            className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#EBE9E1] hover:text-[#E43D12] transition-all text-sm"
-                        >✕</button>
-                    </div>
-                    {/* Form */}
-                    <form onSubmit={handlePwSubmit} className="px-6 pb-6 pt-5 space-y-3">
-                        <PasswordField
-                            label="Contraseña actual"
-                            name="actual"
-                            value={pwForm.actual}
-                            onChange={handlePwChange}
-                            error={pwErrors.actual}
-                        />
-                        <PasswordField
-                            label="Nueva contraseña"
-                            name="nueva"
-                            value={pwForm.nueva}
-                            onChange={handlePwChange}
-                            error={pwErrors.nueva}
-                        />
-                        <PasswordField
-                            label="Confirmar nueva contraseña"
-                            name="confirmar"
-                            value={pwForm.confirmar}
-                            onChange={handlePwChange}
-                            error={pwErrors.confirmar}
-                        />
-                        <div className="flex gap-3 pt-2">
+            {/* ── MODAL CAMBIAR CONTRASEÑA (portal → cubre toda la pantalla) ── */}
+            {editingPassword && createPortal(
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 anim-fade">
+                    <div className="absolute inset-0 bg-black/40" onClick={closePwModal} />
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm anim-modal-in">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center text-base"
+                                    style={{ background: '#E43D1218' }}
+                                >🔒</div>
+                                <h2 className="text-base font-bold text-[#3d3d3d]">Cambiar contraseña</h2>
+                            </div>
                             <button
-                                type="button"
                                 onClick={closePwModal}
-                                className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
-                            >Cancelar</button>
-                            <button
-                                type="submit"
-                                className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                                style={{ backgroundColor: 'var(--color-primary)' }}
-                            >Guardar</button>
+                                className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#EBE9E1] hover:text-[#E43D12] transition-all text-sm"
+                            >✕</button>
                         </div>
-                    </form>
-                </div>
-            </div>,
-            document.body
-        )}
+                        {/* Form */}
+                        <form onSubmit={handlePwSubmit} className="px-6 pb-6 pt-5 space-y-3">
+                            <PasswordField
+                                label="Contraseña actual"
+                                name="actual"
+                                value={pwForm.actual}
+                                onChange={handlePwChange}
+                                error={pwErrors.actual}
+                            />
+                            <PasswordField
+                                label="Nueva contraseña"
+                                name="nueva"
+                                value={pwForm.nueva}
+                                onChange={handlePwChange}
+                                error={pwErrors.nueva}
+                            />
+                            <PasswordField
+                                label="Confirmar nueva contraseña"
+                                name="confirmar"
+                                value={pwForm.confirmar}
+                                onChange={handlePwChange}
+                                error={pwErrors.confirmar}
+                            />
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={closePwModal}
+                                    className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
+                                >Cancelar</button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                                    style={{ backgroundColor: 'var(--color-primary)' }}
+                                >Guardar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>,
+                document.body
+            )}
         </>
     )
 }
