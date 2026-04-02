@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { MessageSquare, ClipboardList, FolderOpen, UserCheck, CheckCircle, Zap, FileText, Presentation, FileIcon, FileSpreadsheet, Link2, Archive, Download, ExternalLink } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Tabs from '../../Components/UI/Tabs'
 import Avatar from '../../Components/UI/Avatar'
@@ -52,9 +53,9 @@ const materiales = [
 ]
 
 const TABS = [
-    { key: 'canal', label: '💬 Canal' },
-    { key: 'tareas', label: '📋 Tareas' },
-    { key: 'materiales', label: '📁 Materiales' },
+    { key: 'canal', label: 'Canal' },
+    { key: 'tareas', label: 'Tareas' },
+    { key: 'materiales', label: 'Materiales' },
 ]
 // ─────────────────────────────────────────────────────────────
 
@@ -87,7 +88,7 @@ export default function AulaVirtualPage() {
                         <div>
                             <p className="text-white/70 text-xs mb-1">{MATERIA.clave} · {MATERIA.grupo}</p>
                             <h1 className="text-2xl font-bold">{MATERIA.nombre}</h1>
-                            <p className="text-white/80 text-sm mt-1">👨‍🏫 {MATERIA.docente} · {MATERIA.alumnos} alumnos</p>
+                            <p className="text-white/80 text-sm mt-1"><UserCheck size={14} className="inline" /> {MATERIA.docente} · {MATERIA.alumnos} alumnos</p>
                         </div>
                         <button
                             onClick={() => navigate('/alumno/materias')}
@@ -193,7 +194,7 @@ function TareasTab({ tareas, navigate }) {
                         onClick={() => navigate(`/alumno/tareas/${tarea.id}`)}
                         className="flex items-center gap-4 p-4 rounded-xl bg-[#EBE9E1] cursor-pointer hover:bg-gray-100 transition-colors"
                     >
-                        <span className="text-xl">{tarea.entregada ? '✅' : urgent ? '⚡' : '📋'}</span>
+                        <span className="text-xl">{tarea.entregada ? <CheckCircle size={20} /> : urgent ? <Zap size={20} /> : <ClipboardList size={20} />}</span>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-[#3d3d3d]">{tarea.titulo}</p>
                             <p className={`text-xs mt-0.5 font-medium ${urgent && !tarea.entregada ? 'text-[#EFB11D]' : 'text-gray-400'}`}>
@@ -213,14 +214,14 @@ function TareasTab({ tareas, navigate }) {
     )
 }
 
-const FILE_ICONS = { pdf: '📕', pptx: '📊', docx: '📄', xlsx: '📈', link: '🔗', zip: '🗄️' }
+const FILE_ICONS = { pdf: <FileText size={20} />, pptx: <Presentation size={20} />, docx: <FileIcon size={20} />, xlsx: <FileSpreadsheet size={20} />, link: <Link2 size={20} />, zip: <Archive size={20} /> }
 
 function MaterialesTab({ materiales }) {
     return (
         <div className="space-y-2">
             {materiales.length === 0 && (
                 <div className="text-center py-12 text-gray-400">
-                    <p className="text-3xl mb-2">📁</p>
+                    <p className="text-3xl mb-2"><FolderOpen size={32} className="mx-auto text-gray-300" /></p>
                     <p className="text-sm">El docente aún no ha subido materiales</p>
                 </div>
             )}
@@ -233,7 +234,7 @@ function MaterialesTab({ materiales }) {
                         className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                         style={{ background: m.tipo === 'link' ? '#E43D1212' : '#EBE9E1' }}
                     >
-                        {FILE_ICONS[m.tipo] ?? '📄'}
+                        {FILE_ICONS[m.tipo] ?? <FileIcon size={20} />}
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-[#3d3d3d] truncate">{m.nombre}</p>
@@ -244,7 +245,7 @@ function MaterialesTab({ materiales }) {
                         className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
                         style={{ background: '#E43D1210', color: 'var(--color-primary)' }}
                     >
-                        {m.tipo === 'link' ? '🔗 Abrir' : '⬇ Descargar'}
+                        {m.tipo === 'link' ? <><ExternalLink size={12} className="inline" /> Abrir</> : <><Download size={12} className="inline" /> Descargar</>}
                     </button>
                 </div>
             ))}

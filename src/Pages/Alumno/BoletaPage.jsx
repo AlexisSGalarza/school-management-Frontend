@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ClipboardList } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Badge from '../../Components/UI/Badge'
 
@@ -190,7 +191,7 @@ export default function BoletaPage() {
                                                     <tr key={t.id} className="hover:bg-gray-50 transition-colors">
                                                         <td className="px-5 py-3">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-sm">📋</span>
+                                                                <span className="text-sm"><ClipboardList size={14} /></span>
                                                                 <span className="text-sm text-[#3d3d3d]">{t.titulo}</span>
                                                             </div>
                                                         </td>

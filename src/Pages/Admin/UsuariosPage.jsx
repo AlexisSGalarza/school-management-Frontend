@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Plus, Pencil, Search } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import Badge from '../../Components/UI/Badge'
 import PageHeader from '../../Components/UI/PageHeader'
@@ -133,7 +134,7 @@ export default function UsuariosPage() {
                 <PageHeader
                     title="Usuarios"
                     subtitle={`${users.filter(u => u.activo).length} activos · ${users.length} total`}
-                    action={{ label: 'Nuevo Usuario', icon: '➕', onClick: () => setModal(true) }}
+                    action={{ label: 'Nuevo Usuario', icon: <Plus size={16} />, onClick: () => setModal(true) }}
                 />
 
                 {/* Filtros */}
@@ -184,7 +185,7 @@ export default function UsuariosPage() {
                                 {paginated.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="text-center py-12 text-gray-400">
-                                            <p className="text-2xl mb-2">🔍</p>
+                                            <p className="text-2xl mb-2"><Search size={28} className="mx-auto text-gray-400" /></p>
                                             <p className="text-sm font-medium">Sin resultados</p>
                                         </td>
                                     </tr>
@@ -212,7 +213,9 @@ export default function UsuariosPage() {
                                                     className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
                                                     style={{ background: '#EBE9E1', color: '#3d3d3d' }}
                                                     title="Editar"
-                                                >✏️</button>
+                                                >
+                                                    <Pencil size={14} />
+                                                </button>
                                                 <button
                                                     onClick={() => toggleActivo(u.id)}
                                                     className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
@@ -270,7 +273,7 @@ export default function UsuariosPage() {
                 isOpen={modal}
                 onClose={() => { setModal(false); setForm(EMPTY_FORM); setErrors({}) }}
                 title="Registrar Nuevo Usuario"
-                icon="➕"
+                icon={<Plus size={18} />}
                 maxWidth="max-w-md"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -313,7 +316,7 @@ export default function UsuariosPage() {
                 isOpen={!!editUser}
                 onClose={() => setEditUser(null)}
                 title="Editar Usuario"
-                icon="✏️"
+                icon={<Pencil size={18} />}
                 maxWidth="max-w-md"
             >
                 <form onSubmit={handleEditSubmit} className="space-y-4">

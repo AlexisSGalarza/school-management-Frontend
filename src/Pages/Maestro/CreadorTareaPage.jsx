@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { CheckCircle, Lightbulb } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 
 export default function CreadorTareaPage() {
@@ -59,7 +60,7 @@ export default function CreadorTareaPage() {
 
                 {success && (
                     <div className="rounded-2xl p-4 text-center anim-modal-in" style={{ background: '#10b98118', border: '1px solid #10b98130' }}>
-                        <p className="text-sm font-semibold text-emerald-600">✅ ¡Tarea publicada exitosamente! Redirigiendo…</p>
+                        <p className="text-sm font-semibold text-emerald-600"><CheckCircle size={16} className="inline" /> ¡Tarea publicada exitosamente! Redirigiendo…</p>
                     </div>
                 )}
 
@@ -134,10 +135,10 @@ export default function CreadorTareaPage() {
                                     onFocus={e => e.target.style.borderColor = '#FFA2B6'}
                                     onBlur={e => e.target.style.borderColor = 'transparent'}
                                 >
-                                    <option value="archivo">📎 Archivo</option>
-                                    <option value="link">🔗 Enlace</option>
-                                    <option value="cualquiera">📂 Cualquiera</option>
-                                    <option value="sin_entrega">📖 Sin entrega (solo lectura)</option>
+                                    <option value="archivo">Archivo</option>
+                                    <option value="link">Enlace</option>
+                                    <option value="cualquiera">Cualquiera</option>
+                                    <option value="sin_entrega">Sin entrega (solo lectura)</option>
                                 </select>
                             </div>
                             <div>
@@ -194,7 +195,7 @@ export default function CreadorTareaPage() {
                         className="rounded-2xl p-4 flex gap-3"
                         style={{ background: '#EFB11D15', border: '1px solid #EFB11D40' }}
                     >
-                        <span className="text-xl flex-shrink-0 mt-0.5">💡</span>
+                        <span className="text-xl flex-shrink-0 mt-0.5"><Lightbulb size={20} /></span>
                         <div className="space-y-1">
                             <p className="text-sm font-semibold" style={{ color: '#a07a00' }}>Recuerda indicar en la descripción:</p>
                             <ul className="text-xs text-[#7a5e00] space-y-1 list-none">

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Pencil, Lock, User, Mail, Phone, Tag, IdCard, Calendar } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import Avatar from '../../Components/UI/Avatar'
 import Badge from '../../Components/UI/Badge'
@@ -100,13 +101,13 @@ export default function PerfilAdminPage() {
                                     className="px-5 py-2 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity"
                                     style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
                                 >
-                                    ✏️ Editar perfil
+                                    <Pencil size={14} className="inline mr-1" /> Editar perfil
                                 </button>
                                 <button
                                     onClick={() => { setPassForm({ actual: '', nueva: '', confirm: '' }); setPassErrors({}); setPassModal(true) }}
                                     className="px-5 py-2 rounded-full text-sm font-semibold border-2 border-gray-200 text-gray-600 hover:border-gray-300 transition-colors"
                                 >
-                                    🔒 Cambiar contraseña
+                                    <Lock size={14} className="inline mr-1" /> Cambiar contraseña
                                 </button>
                             </div>
                         </div>
@@ -117,13 +118,13 @@ export default function PerfilAdminPage() {
                 <div className="bg-white rounded-2xl p-6 shadow-sm">
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Información de la cuenta</p>
                     <div className="grid sm:grid-cols-2 gap-4">
-                        <InfoRow icon="👤" label="Nombre completo"   value={admin.nombre}   />
-                        <InfoRow icon="📧" label="Email institucional" value={admin.email}   />
-                        <InfoRow icon="📞" label="Teléfono"           value={admin.telefono} />
-                        <InfoRow icon="🏷️"  label="Cargo"             value={admin.cargo}    />
-                        <InfoRow icon="🪪"  label="ID Empleado"        value={admin.empleado} />
+                        <InfoRow icon={<User size={16} />} label="Nombre completo"   value={admin.nombre}   />
+                        <InfoRow icon={<Mail size={16} />} label="Email institucional" value={admin.email}   />
+                        <InfoRow icon={<Phone size={16} />} label="Teléfono"           value={admin.telefono} />
+                        <InfoRow icon={<Tag size={16} />}  label="Cargo"             value={admin.cargo}    />
+                        <InfoRow icon={<IdCard size={16} />}  label="ID Empleado"        value={admin.empleado} />
                         <InfoRow
-                            icon="📅"
+                            icon={<Calendar size={16} />}
                             label="Fecha de ingreso"
                             value={new Date(admin.ingreso + 'T12:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
                         />
@@ -135,7 +136,7 @@ export default function PerfilAdminPage() {
                     <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Seguridad</p>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: '#E43D1210' }}>🔒</div>
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: '#E43D1210' }}><Lock size={20} /></div>
                             <div>
                                 <p className="text-sm font-semibold text-[#3d3d3d]">Contraseña</p>
                                 <p className="text-xs text-gray-400">Última actualización: hace 30 días</p>
@@ -156,7 +157,7 @@ export default function PerfilAdminPage() {
                 isOpen={editModal}
                 onClose={() => setEditModal(false)}
                 title="Editar Perfil"
-                icon="✏️"
+                icon={<Pencil size={18} />}
                 maxWidth="max-w-md"
             >
                 <form onSubmit={handleEditSubmit} className="space-y-4">
@@ -176,7 +177,7 @@ export default function PerfilAdminPage() {
                 isOpen={passModal}
                 onClose={() => setPassModal(false)}
                 title="Cambiar Contraseña"
-                icon="🔒"
+                icon={<Lock size={18} />}
                 iconBg="#E43D1218"
                 maxWidth="max-w-sm"
             >

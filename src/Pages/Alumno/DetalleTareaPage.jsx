@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { UserCheck, MessageSquare, Upload, Paperclip, AlertTriangle, Link2, CheckCircle, FolderOpen, X } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Badge from '../../Components/UI/Badge'
 import Button from '../../Components/UI/Button'
@@ -46,9 +47,9 @@ export default function DetalleTareaPage() {
     function validateFile(file) {
         if (!file) return ''
         const ext = file.name.split('.').pop().toUpperCase()
-        if (BLOCKED_TYPES.includes(ext)) return `❌ Los archivos de video (${ext}) no están permitidos. Usa el campo de enlace.`
-        if (!ALLOWED_TYPES.includes(ext)) return `❌ Formato .${ext} no permitido.`
-        if (file.size > MAX_MB * 1024 * 1024) return `❌ El archivo supera los ${MAX_MB} MB.`
+        if (BLOCKED_TYPES.includes(ext)) return `Los archivos de video (${ext}) no están permitidos. Usa el campo de enlace.`
+        if (!ALLOWED_TYPES.includes(ext)) return `Formato .${ext} no permitido.`
+        if (file.size > MAX_MB * 1024 * 1024) return `El archivo supera los ${MAX_MB} MB.`
         return ''
     }
 
@@ -100,7 +101,7 @@ export default function DetalleTareaPage() {
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex-1 min-w-0">
                             <h1 className="text-xl font-bold text-[#3d3d3d]">{TAREA.titulo}</h1>
-                            <p className="text-xs text-gray-400 mt-1">👨‍🏫 {TAREA.docente} · {TAREA.grupo}</p>
+                            <p className="text-xs text-gray-400 mt-1"><UserCheck size={14} className="inline" /> {TAREA.docente} · {TAREA.grupo}</p>
                         </div>
                         <div className="flex-shrink-0 text-right">
                             <p className={`text-sm font-bold ${urgent ? 'text-[#EFB11D]' : 'text-gray-400'}`}>
@@ -121,7 +122,7 @@ export default function DetalleTareaPage() {
                     const gradeColor = ultima.calificacion >= 9 ? '#10b981' : ultima.calificacion >= 7 ? '#EFB11D' : '#E43D12'
                     return (
                         <Card>
-                            <h2 className="text-sm font-bold text-[#3d3d3d] mb-4">💬 Retroalimentación del docente</h2>
+                            <h2 className="text-sm font-bold text-[#3d3d3d] mb-4"><MessageSquare size={16} className="inline" /> Retroalimentación del docente</h2>
                             <div className="flex gap-4">
                                 <div
                                     className="flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center"
@@ -145,7 +146,7 @@ export default function DetalleTareaPage() {
 
                 {/* Zona de entrega */}
                 <Card>
-                    <h2 className="text-sm font-bold text-[#3d3d3d] mb-5">📤 Subir entrega</h2>
+                    <h2 className="text-sm font-bold text-[#3d3d3d] mb-5"><Upload size={16} className="inline" /> Subir entrega</h2>
 
                     {/* Selector de archivo */}
                     <input
@@ -166,7 +167,7 @@ export default function DetalleTareaPage() {
                                 className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0 transition-colors"
                                 style={{ background: '#E43D1218' }}
                             >
-                                📎
+                                <Paperclip size={20} />
                             </div>
                             <div className="text-left">
                                 <p className="text-sm font-semibold text-[#3d3d3d] group-hover:text-[#E43D12] transition-colors">
@@ -184,7 +185,7 @@ export default function DetalleTareaPage() {
                                 className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                                 style={{ background: '#D6536D18' }}
                             >
-                                📎
+                                <Paperclip size={20} />
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold text-[#3d3d3d] truncate">{selectedFile.name}</p>
@@ -204,7 +205,7 @@ export default function DetalleTareaPage() {
                                 className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:bg-[#E43D12]/10 hover:text-[#E43D12] transition-all flex-shrink-0"
                                 title="Quitar archivo"
                             >
-                                ✕
+                                <X size={16} />
                             </button>
                         </div>
                     )}
@@ -218,7 +219,7 @@ export default function DetalleTareaPage() {
 
                     {/* Alerta de video */}
                     <div className="mt-4 rounded-xl p-3 flex gap-2" style={{ background: '#EFB11D18', border: '1px solid #EFB11D44' }}>
-                        <span className="text-sm flex-shrink-0">⚠️</span>
+                        <span className="text-sm flex-shrink-0"><AlertTriangle size={16} /></span>
                         <div>
                             <p className="text-xs font-bold text-[#EFB11D]">No se permiten videos</p>
                             <p className="text-xs text-gray-500 mt-0.5">
@@ -229,7 +230,7 @@ export default function DetalleTareaPage() {
 
                     {/* Input enlace de video */}
                     <div className="mt-4">
-                        <label className="text-xs font-semibold text-gray-500 block mb-1.5">🔗 Enlace de video (YouTube / Google Drive)</label>
+                        <label className="text-xs font-semibold text-gray-500 block mb-1.5"><Link2 size={12} className="inline" /> Enlace de video (YouTube / Google Drive)</label>
                         <input
                             type="url"
                             value={videoLink}
@@ -249,7 +250,7 @@ export default function DetalleTareaPage() {
                             onClick={handleUpload}
                             disabled={uploading || (!selectedFile && !videoLink.trim())}
                         >
-                            {uploading ? 'Subiendo...' : '📤 Subir Entrega'}
+                            {uploading ? 'Subiendo...' : 'Subir Entrega'}
                         </Button>
                         <p className="text-xs text-gray-400 text-center mt-2">
                             Puedes resubir ilimitadas veces antes de la fecha límite
@@ -259,7 +260,7 @@ export default function DetalleTareaPage() {
                     {/* Éxito */}
                     {uploadSuccess && (
                         <div className="mt-3 rounded-xl p-3 text-center" style={{ background: '#10b98120', border: '1px solid #10b98140' }}>
-                            <p className="text-sm font-semibold text-emerald-600">✅ ¡Entrega registrada exitosamente!</p>
+                            <p className="text-sm font-semibold text-emerald-600"><CheckCircle size={16} className="inline" /> ¡Entrega registrada exitosamente!</p>
                         </div>
                     )}
                 </Card>
@@ -272,7 +273,7 @@ export default function DetalleTareaPage() {
                             className="w-full flex items-center justify-between"
                         >
                             <h2 className="text-sm font-bold text-[#3d3d3d]">
-                                📂 Historial de entregas
+                                <FolderOpen size={16} className="inline" /> Historial de entregas
                                 <span className="ml-2 text-xs font-normal text-gray-400">
                                     ({MI_HISTORIAL.length} intento{MI_HISTORIAL.length > 1 ? 's' : ''})
                                 </span>
@@ -286,7 +287,7 @@ export default function DetalleTareaPage() {
                             <div className="mt-4 space-y-2">
                                 {MI_HISTORIAL.map(e => (
                                     <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#EBE9E180' }}>
-                                        <span className="text-xl flex-shrink-0">{e.tipo === 'link' ? '🔗' : '📎'}</span>
+                                        <span className="text-xl flex-shrink-0">{e.tipo === 'link' ? <Link2 size={20} /> : <Paperclip size={20} />}</span>
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs font-semibold text-[#3d3d3d] truncate">{e.nombre}</p>
                                             <p className="text-xs text-gray-400">{e.fecha}{e.tamaño ? ` · ${e.tamaño}` : ''}</p>

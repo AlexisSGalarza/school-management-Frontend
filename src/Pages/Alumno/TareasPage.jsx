@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ClipboardList, CheckCircle, XCircle, Zap, PartyPopper } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Tabs from '../../Components/UI/Tabs'
 import Badge from '../../Components/UI/Badge'
@@ -18,9 +19,9 @@ const tareas = [
 const materias = ['Todas', 'Desarrollo Web', 'Física II', 'Cálculo Integral', 'Español', 'Programación OOP', 'Base de Datos']
 
 const TABS = [
-    { key: 'pendiente', label: '📋 Pendientes' },
-    { key: 'entregada', label: '✅ Entregadas' },
-    { key: 'vencida', label: '❌ Vencidas' },
+    { key: 'pendiente', label: 'Pendientes' },
+    { key: 'entregada', label: 'Entregadas' },
+    { key: 'vencida', label: 'Vencidas' },
 ]
 // ─────────────────────────────────────────────────────────────
 
@@ -70,7 +71,7 @@ export default function TareasPage() {
                     <div className="p-5 space-y-3">
                         {filtered.length === 0 ? (
                             <div className="text-center py-12">
-                                <p className="text-4xl mb-3">🎉</p>
+                                <p className="text-4xl mb-3"><PartyPopper size={40} className="mx-auto text-gray-300" /></p>
                                 <p className="text-sm text-gray-400">No hay tareas en esta categoría</p>
                             </div>
                         ) : (
@@ -99,7 +100,7 @@ function TareaCard({ tarea, onClick }) {
                 }`}
         >
             <span className="text-2xl flex-shrink-0">
-                {vencida ? '❌' : entregada ? '✅' : urgent ? '⚡' : '📋'}
+                {vencida ? <XCircle size={24} /> : entregada ? <CheckCircle size={24} /> : urgent ? <Zap size={24} /> : <ClipboardList size={24} />}
             </span>
 
             <div className="flex-1 min-w-0">

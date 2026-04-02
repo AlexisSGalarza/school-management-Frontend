@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { User, Users, BookOpen, AlertTriangle, ClipboardList, BarChart3, FileText, FileSpreadsheet, FileIcon, CheckCircle, Clock, Download } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import PageHeader from '../../Components/UI/PageHeader'
 import FormField from '../../Components/UI/FormField'
@@ -7,18 +8,18 @@ import { CICLOS, GRUPOS, MATERIAS } from '../../data/mockAcademicStructure'
 import { MOCK_USERS } from '../../data/mockUsers'
 
 const TIPOS = [
-    { value: 'promedio_alumno', label: '👤 Promedio por Alumno' },
-    { value: 'promedio_grupo', label: '👥 Promedio por Grupo' },
-    { value: 'promedio_materia', label: '📚 Promedio por Materia' },
-    { value: 'reprobacion', label: '⚠️ Índice de Reprobación (< 70)' },
-    { value: 'inscripciones', label: '📋 Inscripciones por Ciclo' },
-    { value: 'calificaciones', label: '📊 Calificaciones por Grupo' },
+    { value: 'promedio_alumno', label: 'Promedio por Alumno', icon: User },
+    { value: 'promedio_grupo', label: 'Promedio por Grupo', icon: Users },
+    { value: 'promedio_materia', label: 'Promedio por Materia', icon: BookOpen },
+    { value: 'reprobacion', label: 'Índice de Reprobación (< 70)', icon: AlertTriangle },
+    { value: 'inscripciones', label: 'Inscripciones por Ciclo', icon: ClipboardList },
+    { value: 'calificaciones', label: 'Calificaciones por Grupo', icon: BarChart3 },
 ]
 
 const FORMATOS = [
-    { value: 'pdf', label: '📄 PDF' },
-    { value: 'excel', label: '📗 Excel' },
-    { value: 'csv', label: '📑 CSV' },
+    { value: 'pdf', label: 'PDF' },
+    { value: 'excel', label: 'Excel' },
+    { value: 'csv', label: 'CSV' },
 ]
 
 const INIT_FILTERS = { tipo: 'promedio_alumno', cicloId: '', grupoId: '', materiaId: '', alumnoId: '', formato: 'pdf' }
@@ -150,7 +151,7 @@ export default function ReportesPage() {
                                 className="w-full py-3 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
                                 style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)' }}
                             >
-                                📊 Generar Reporte
+                                <BarChart3 size={16} className="inline mr-1" /> Generar Reporte
                             </button>
 
                             <p className="text-xs text-gray-400 text-center leading-relaxed">
@@ -180,7 +181,7 @@ export default function ReportesPage() {
 
                         {tasks.length === 0 ? (
                             <div className="bg-white rounded-2xl p-12 shadow-sm text-center">
-                                <p className="text-4xl mb-3">📊</p>
+                                <p className="text-4xl mb-3"><BarChart3 size={40} className="mx-auto text-gray-300" /></p>
                                 <p className="text-sm font-semibold text-[#3d3d3d]">Sin reportes generados</p>
                                 <p className="text-xs text-gray-400 mt-1">Configura y genera tu primer reporte</p>
                             </div>
@@ -205,7 +206,7 @@ function TaskCard({ task, onRemove }) {
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                         style={{ background: isDone ? '#dcfce740' : '#E43D1210' }}
                     >
-                        {isDone ? '✅' : '⏳'}
+                        {isDone ? <CheckCircle size={20} className="text-emerald-500" /> : <Clock size={20} className="text-[#E43D12]" />}
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-[#3d3d3d] truncate">{task.titulo}</p>
@@ -223,7 +224,7 @@ function TaskCard({ task, onRemove }) {
                             style={{ background: '#dcfce740', color: '#16a34a' }}
                             onClick={() => {/* Simula descarga */ }}
                         >
-                            ⬇ Descargar
+                            <Download size={14} /> Descargar
                         </button>
                     )}
                     <button

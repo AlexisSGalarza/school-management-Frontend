@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BookOpen, Pencil, Trash2 } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import PageHeader from '../../Components/UI/PageHeader'
 import ModalBase from '../../Components/UI/ModalBase'
@@ -89,13 +90,13 @@ export default function MateriasDocentePage() {
                 <PageHeader
                     title="Mis Materias"
                     subtitle={`${materias.filter(m => m.activa).length} activas · ${materias.length} total`}
-                    action={{ label: 'Nueva Materia', icon: '📚', onClick: openCreate }}
+                    action={{ label: 'Nueva Materia', icon: <BookOpen size={16} />, onClick: openCreate }}
                 />
 
                 {/* Grid de materias */}
                 {materias.length === 0 ? (
                     <div className="bg-white rounded-2xl p-12 shadow-sm text-center">
-                        <p className="text-4xl mb-3">📚</p>
+                        <p className="text-4xl mb-3"><BookOpen size={40} className="mx-auto text-gray-300" /></p>
                         <p className="text-sm font-semibold text-[#3d3d3d]">Sin materias registradas</p>
                         <p className="text-xs text-gray-400 mt-1 mb-4">Crea tu primera materia para comenzar</p>
                         <button
@@ -132,7 +133,7 @@ export default function MateriasDocentePage() {
                                         onClick={() => openEdit(m)}
                                         className="flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors"
                                         style={{ background: '#D6536D10', color: 'var(--color-secondary)' }}
-                                    >✏️ Editar</button>
+                                    ><Pencil size={12} className="inline" /> Editar</button>
                                     <button
                                         onClick={() => toggleActiva(m.id)}
                                         className="flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors"
@@ -143,7 +144,7 @@ export default function MateriasDocentePage() {
                                     <button
                                         onClick={() => setDeleteId(m.id)}
                                         className="w-8 h-8 rounded-lg flex items-center justify-center text-xs text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors flex-shrink-0"
-                                    >🗑</button>
+                                    ><Trash2 size={12} /></button>
                                 </div>
                             </div>
                         ))}
@@ -156,7 +157,7 @@ export default function MateriasDocentePage() {
                 isOpen={modal}
                 onClose={() => { setModal(false); setForm(EMPTY); setErrors({}); setEditId(null) }}
                 title={editId ? 'Editar Materia' : 'Nueva Materia'}
-                icon="📚"
+                icon={<BookOpen size={18} />}
                 maxWidth="max-w-sm"
             >
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -205,7 +206,7 @@ export default function MateriasDocentePage() {
                 isOpen={!!deleteId}
                 onClose={() => setDeleteId(null)}
                 title="Eliminar Materia"
-                icon="🗑️"
+                icon={<Trash2 size={18} />}
                 iconBg="#fee2e2"
                 maxWidth="max-w-xs"
             >

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Plus, UsersRound, X } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import Badge from '../../Components/UI/Badge'
 
@@ -30,7 +31,7 @@ export default function MisGruposPage() {
                         className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
                         style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)' }}
                     >
-                        <span className="text-base leading-none">➕</span>
+                        <span className="text-base leading-none"><Plus size={16} /></span>
                         Nuevo Grupo
                     </button>
                 </div>
@@ -70,7 +71,7 @@ export default function MisGruposPage() {
 
                                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
                                     <div className="flex items-center gap-2">
-                                        <span className="text-base">👥</span>
+                                        <span className="text-base"><UsersRound size={16} /></span>
                                         <span className="text-sm font-semibold text-[#3d3d3d]">{g.alumnos}</span>
                                         <span className="text-xs text-gray-400">alumnos</span>
                                     </div>
@@ -95,13 +96,13 @@ export default function MisGruposPage() {
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm anim-modal-in">
                         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
                             <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base" style={{ background: '#E43D1218' }}>➕</div>
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base" style={{ background: '#E43D1218' }}><Plus size={16} /></div>
                                 <h2 className="text-base font-bold text-[#3d3d3d]">Nuevo Grupo</h2>
                             </div>
                             <button
                                 onClick={() => setShowModal(false)}
                                 className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#EBE9E1] hover:text-[#E43D12] transition-all text-sm"
-                            >✕</button>
+                            ><X size={16} /></button>
                         </div>
                         <div className="px-6 pb-6 pt-5 space-y-4">
                             <div>

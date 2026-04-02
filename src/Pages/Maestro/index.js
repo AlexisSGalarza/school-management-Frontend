@@ -1,0 +1,7 @@
+export { default as DashboardMaestroPage } from "./DashboardMaestroPage"
+export { default as MisGruposPage } from "./MisGruposPage"
+export { default as PanelGrupoPage } from "./PanelGrupoPage"
+export { default as CreadorTareaPage } from "./CreadorTareaPage"
+export { default as CentroCalificacionPage } from "./CentroCalificacionPage"
+export { default as PerfilMaestroPage } from "./PerfilMaestroPage"
+export { default as MateriasDocentePage } from "./MateriasDocentePage"

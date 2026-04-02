@@ -58,6 +58,7 @@ export function TasksProvider({ children }) {
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTasks() {
     const ctx = useContext(TasksContext)
     if (!ctx) throw new Error('useTasks debe usarse dentro de <TasksProvider>')

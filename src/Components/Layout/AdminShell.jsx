@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { LayoutDashboard, Users, Landmark, BarChart3, Hand, User, LogOut, X } from 'lucide-react'
 import Avatar from '../UI/Avatar'
 import { useTasks } from '../../Context/TasksContext'
 
 const navItems = [
-    { to: '/admin/dashboard', icon: '🏠', label: 'Dashboard' },
-    { to: '/admin/usuarios', icon: '👥', label: 'Usuarios' },
-    { to: '/admin/estructura', icon: '🏛️', label: 'Estructura Académica' },
-    { to: '/admin/reportes', icon: '📊', label: 'Reportes' },
+    { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/admin/usuarios', icon: Users, label: 'Usuarios' },
+    { to: '/admin/estructura', icon: Landmark, label: 'Estructura Académica' },
+    { to: '/admin/reportes', icon: BarChart3, label: 'Reportes' },
 ]
 
 const ADMIN = { nombre: 'Lic. Patricia Montes', ciclo: 'Enero – Junio 2026', empleado: 'ADM001' }
@@ -72,7 +73,7 @@ export default function AdminShell({ children }) {
                             <button
                                 onClick={() => setMobileOpen(false)}
                                 className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#EBE9E1] hover:text-[#E43D12] transition-all"
-                            >✕</button>
+                            ><X size={16} /></button>
                         </div>
                         <SidebarContent
                             navigate={navigate}
@@ -92,7 +93,7 @@ export default function AdminShell({ children }) {
                             className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto"
                             style={{ background: '#E43D1218' }}
                         >
-                            👋
+                            <Hand size={28} />
                         </div>
                         <div>
                             <p className="text-base font-bold text-[#3d3d3d]">¿Cerrar sesión?</p>
@@ -236,7 +237,7 @@ export default function AdminShell({ children }) {
                                         onClick={() => { navigate('/admin/perfil'); setUserMenuOpen(false) }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[#EBE9E1] transition-colors text-[#3d3d3d]"
                                     >
-                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: '#E43D1210' }}>👤</span>
+                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: '#E43D1210' }}><User size={14} /></span>
                                         Mi Perfil
                                     </button>
                                     <button
@@ -244,7 +245,7 @@ export default function AdminShell({ children }) {
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold hover:bg-[#E43D1208] mb-1 transition-colors"
                                         style={{ color: 'var(--color-primary)' }}
                                     >
-                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: '#E43D1218' }}>🚪</span>
+                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: '#E43D1218' }}><LogOut size={14} /></span>
                                         Cerrar sesión
                                     </button>
                                 </div>
@@ -271,7 +272,7 @@ export default function AdminShell({ children }) {
                                 `flex-1 flex flex-col items-center justify-center py-2 gap-0.5 text-[9px] font-medium transition-colors ${isActive ? 'text-[#E43D12]' : 'text-gray-400'}`
                             }
                         >
-                            <span className="text-lg leading-none">{item.icon}</span>
+                            <item.icon size={18} />
                             {item.label.split(' ')[0]}
                         </NavLink>
                     ))}
@@ -298,7 +299,7 @@ function BrandLogo() {
     )
 }
 
-function SidebarContent({ navigate, processing, onNavClick }) {
+function SidebarContent({ processing, onNavClick }) {
     return (
         <div className="flex flex-col h-full">
             <div className="px-3 flex-1 overflow-y-auto">
@@ -316,7 +317,7 @@ function SidebarContent({ navigate, processing, onNavClick }) {
                                 isActive ? { background: 'linear-gradient(135deg, #E43D12 0%, #D6536D 100%)' } : {}
                             }
                         >
-                            <span className="w-7 h-7 flex items-center justify-center text-base flex-shrink-0">{item.icon}</span>
+                            <span className="w-7 h-7 flex items-center justify-center flex-shrink-0"><item.icon size={18} /></span>
                             <span className="flex-1">{item.label}</span>
                             {/* Badge "procesando" en el ítem Reportes */}
                             {item.to === '/admin/reportes' && processing > 0 && (

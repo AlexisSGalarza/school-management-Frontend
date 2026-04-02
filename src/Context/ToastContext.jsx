@@ -1,13 +1,14 @@
 import { createContext, useContext, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { Check, X, AlertTriangle, Info } from 'lucide-react'
 
 const ToastContext = createContext(null)
 
 const STYLES = {
-    success: { bg: '#f0fdf4', border: '#86efac', text: '#15803d', icon: '✓' },
-    error: { bg: '#fef2f2', border: '#fca5a5', text: '#dc2626', icon: '✕' },
-    warning: { bg: '#fffbeb', border: '#fcd34d', text: '#d97706', icon: '⚠' },
-    info: { bg: '#eff6ff', border: '#93c5fd', text: '#2563eb', icon: 'ℹ' },
+    success: { bg: '#f0fdf4', border: '#86efac', text: '#15803d', icon: <Check size={11} /> },
+    error: { bg: '#fef2f2', border: '#fca5a5', text: '#dc2626', icon: <X size={11} /> },
+    warning: { bg: '#fffbeb', border: '#fcd34d', text: '#d97706', icon: <AlertTriangle size={11} /> },
+    info: { bg: '#eff6ff', border: '#93c5fd', text: '#2563eb', icon: <Info size={11} /> },
 }
 
 export function ToastProvider({ children }) {
@@ -52,7 +53,7 @@ export function ToastProvider({ children }) {
                                 <button
                                     onClick={() => dismiss(t.id)}
                                     className="text-xs opacity-50 hover:opacity-100 transition-opacity flex-shrink-0 ml-1"
-                                >✕</button>
+                                ><X size={12} /></button>
                             </div>
                         )
                     })}
@@ -63,6 +64,7 @@ export function ToastProvider({ children }) {
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useToast() {
     const ctx = useContext(ToastContext)
     if (!ctx) throw new Error('useToast debe usarse dentro de <ToastProvider>')

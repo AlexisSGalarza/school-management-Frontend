@@ -1,0 +1,5 @@
+export { default as DashboardAdminPage } from "./DashboardAdminPage"
+export { default as UsuariosPage } from "./UsuariosPage"
+export { default as EstructuraAcademicaPage } from "./EstructuraAcademicaPage"
+export { default as ReportesPage } from "./ReportesPage"
+export { default as PerfilAdminPage } from "./PerfilAdminPage"

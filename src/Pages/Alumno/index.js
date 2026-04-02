@@ -1,0 +1,7 @@
+export { default as DashboardPage } from "./DashboardPage"
+export { default as MateriasPage } from "./MateriasPage"
+export { default as AulaVirtualPage } from "./AulaVirtualPage"
+export { default as TareasPage } from "./TareasPage"
+export { default as DetalleTareaPage } from "./DetalleTareaPage"
+export { default as PerfilPage } from "./PerfilPage"
+export { default as BoletaPage } from "./BoletaPage"

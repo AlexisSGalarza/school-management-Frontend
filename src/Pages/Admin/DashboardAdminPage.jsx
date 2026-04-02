@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { GraduationCap, UsersRound, BookOpen, School, Plus, BarChart3, User, Calendar, UserPlus } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import StatCard from '../../Components/UI/StatCard'
 import { MOCK_USERS } from '../../data/mockUsers'
@@ -11,7 +12,7 @@ const stats = [
     {
         label: 'Alumnos Activos',
         value: String(MOCK_USERS.filter(u => u.rol === 'Alumno' && u.activo).length),
-        icon: '🎓',
+        icon: <GraduationCap size={20} />,
         iconBg: '#FFA2B618',
         change: '+3 este ciclo',
         up: true,
@@ -19,7 +20,7 @@ const stats = [
     {
         label: 'Docentes Activos',
         value: String(MOCK_USERS.filter(u => u.rol === 'Docente' && u.activo).length),
-        icon: '👨‍🏫',
+        icon: <UsersRound size={20} />,
         iconBg: '#D6536D18',
         change: 'Sin cambios',
         up: null,
@@ -27,7 +28,7 @@ const stats = [
     {
         label: 'Materias en Curso',
         value: String(MATERIAS.filter(m => m.cicloId === cicloActivo.id).length),
-        icon: '📚',
+        icon: <BookOpen size={20} />,
         iconBg: '#E43D1218',
         change: cicloActivo.nombre,
         up: null,
@@ -35,7 +36,7 @@ const stats = [
     {
         label: 'Grupos Activos',
         value: String(GRUPOS.filter(g => g.cicloId === cicloActivo.id).length),
-        icon: '🏫',
+        icon: <School size={20} />,
         iconBg: '#EFB11D18',
         change: `${GRUPOS.reduce((a, g) => a + g.alumnos.length, 0)} alumnos inscritos`,
         up: true,
@@ -43,17 +44,17 @@ const stats = [
 ]
 
 const acciones = [
-    { label: 'Registrar Usuario', icon: '➕', to: '/admin/usuarios', color: 'var(--color-primary)' },
-    { label: 'Crear Grupo', icon: '🏫', to: '/admin/estructura', color: 'var(--color-secondary)' },
-    { label: 'Generar Reporte', icon: '📊', to: '/admin/reportes', color: '#EFB11D' },
+    { label: 'Registrar Usuario', icon: <Plus size={18} />, to: '/admin/usuarios', color: 'var(--color-primary)' },
+    { label: 'Crear Grupo', icon: <School size={18} />, to: '/admin/estructura', color: 'var(--color-secondary)' },
+    { label: 'Generar Reporte', icon: <BarChart3 size={18} />, to: '/admin/reportes', color: '#EFB11D' },
 ]
 
 const ACTIVIDAD = [
-    { id: 1, icon: '👤', texto: 'Nueva alumna registrada: Ana Torres (A2024015)', tipo: 'success', tiempo: 'Hace 12 min' },
-    { id: 2, icon: '🏫', texto: 'Grupo G44A creado — Desarrollo Web Avanzado', tipo: 'success', tiempo: 'Hace 1 h' },
-    { id: 3, icon: '🎓', texto: '3 alumnos inscritos en G41A — Ing. Marcos Pérez', tipo: 'success', tiempo: 'Hace 2 h' },
-    { id: 4, icon: '📅', texto: 'Ciclo "Enero – Junio 2026" marcado como activo', tipo: 'info', tiempo: 'Hace 3 h' },
-    { id: 5, icon: '📊', texto: 'Reporte de asistencia generado por Patricia Montes', tipo: 'info', tiempo: 'Ayer' },
+    { id: 1, icon: <UserPlus size={16} />, texto: 'Nueva alumna registrada: Ana Torres (A2024015)', tipo: 'success', tiempo: 'Hace 12 min' },
+    { id: 2, icon: <School size={16} />, texto: 'Grupo G44A creado — Desarrollo Web Avanzado', tipo: 'success', tiempo: 'Hace 1 h' },
+    { id: 3, icon: <GraduationCap size={16} />, texto: '3 alumnos inscritos en G41A — Ing. Marcos Pérez', tipo: 'success', tiempo: 'Hace 2 h' },
+    { id: 4, icon: <Calendar size={16} />, texto: 'Ciclo "Enero – Junio 2026" marcado como activo', tipo: 'info', tiempo: 'Hace 3 h' },
+    { id: 5, icon: <BarChart3 size={16} />, texto: 'Reporte de asistencia generado por Patricia Montes', tipo: 'info', tiempo: 'Ayer' },
 ]
 
 export default function DashboardAdminPage() {
@@ -168,7 +169,7 @@ export default function DashboardAdminPage() {
                     <div className="space-y-1">
                         {ACTIVIDAD.map((a, idx) => (
                             <div key={a.id} className="flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0">
-                                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 mt-0.5"
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
                                     style={{ background: idx === 0 ? '#E43D1210' : '#EBE9E1' }}>
                                     {a.icon}
                                 </div>

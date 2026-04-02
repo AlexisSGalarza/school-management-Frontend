@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
+import { Link2, BookOpen, UserCheck, School, Calendar, Users, CheckCircle, AlertTriangle, X, Check } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Badge from '../../Components/UI/Badge'
 import { GRUPOS, CICLOS } from '../../data/mockAcademicStructure'
@@ -91,7 +92,7 @@ export default function MateriasPage() {
                         className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity shadow-sm"
                         style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
                     >
-                        🔗 Unirse con código
+                        <Link2 size={16} className="inline" /> Unirse con código
                     </button>
                 </div>
 
@@ -102,7 +103,7 @@ export default function MateriasPage() {
                     ))}
                     {materias.length === 0 && (
                         <div className="col-span-3 bg-white rounded-2xl p-12 text-center shadow-sm">
-                            <p className="text-4xl mb-3">📚</p>
+                            <p className="text-4xl mb-3"><BookOpen size={40} className="mx-auto text-gray-300" /></p>
                             <p className="text-sm font-semibold text-gray-500 mb-1">Aún no tienes materias inscritas</p>
                             <p className="text-xs text-gray-400">Usa el botón "Unirse con código" para inscribirte a un grupo</p>
                         </div>
@@ -121,13 +122,13 @@ export default function MateriasPage() {
                         {/* Header */}
                         <div className="px-6 pt-6 pb-4 flex items-start justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl" style={{ background: '#E43D1215' }}>🔗</div>
+                                <div className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl" style={{ background: '#E43D1215' }}><Link2 size={20} /></div>
                                 <div>
                                     <p className="text-base font-black text-[#3d3d3d]">Unirse con código</p>
                                     <p className="text-xs text-gray-400 mt-0.5">Pídele el código a tu docente o admin</p>
                                 </div>
                             </div>
-                            <button onClick={() => setCodigoModal(false)} className="w-8 h-8 rounded-xl bg-[#EBE9E1] flex items-center justify-center text-gray-400 hover:text-gray-600 text-sm font-bold transition-colors">✕</button>
+                            <button onClick={() => setCodigoModal(false)} className="w-8 h-8 rounded-xl bg-[#EBE9E1] flex items-center justify-center text-gray-400 hover:text-gray-600 text-sm font-bold transition-colors"><X size={16} /></button>
                         </div>
 
                         <div className="px-6 pb-6 space-y-4">
@@ -148,7 +149,7 @@ export default function MateriasPage() {
                                             autoFocus
                                         />
                                         {codigoError && (
-                                            <p className="text-xs font-medium mt-2 px-1" style={{ color: '#dc2626' }}>⚠ {codigoError}</p>
+                                            <p className="text-xs font-medium mt-2 px-1" style={{ color: '#dc2626' }}><AlertTriangle size={12} className="inline" /> {codigoError}</p>
                                         )}
                                     </div>
                                     <div className="flex gap-3">
@@ -161,23 +162,23 @@ export default function MateriasPage() {
                                 <div className="space-y-4">
                                     <div className="rounded-2xl p-4 space-y-3" style={{ background: '#E43D1208', border: '1.5px solid #E43D1220' }}>
                                         <div className="flex items-center gap-2">
-                                            <span className="text-lg">✅</span>
+                                            <span className="text-lg"><CheckCircle size={18} className="text-emerald-500" /></span>
                                             <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Grupo encontrado</p>
                                         </div>
                                         <div className="space-y-1.5">
                                             <p className="text-base font-black text-[#3d3d3d] leading-snug">{confirmGrupo.materia}</p>
                                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                                                <span>👨‍🏫 {confirmGrupo.docente}</span>
-                                                <span>🏫 {confirmGrupo.clave}</span>
-                                                <span>📅 {CICLOS.find(c => c.id === confirmGrupo.cicloId)?.nombre ?? '—'}</span>
-                                                <span>👥 {confirmGrupo.alumnos.length}/{confirmGrupo.capacidad} alumnos</span>
+                                                <span><UserCheck size={14} className="inline" /> {confirmGrupo.docente}</span>
+                                                <span><School size={14} className="inline" /> {confirmGrupo.clave}</span>
+                                                <span><Calendar size={14} className="inline" /> {CICLOS.find(c => c.id === confirmGrupo.cicloId)?.nombre ?? '—'}</span>
+                                                <span><Users size={14} className="inline" /> {confirmGrupo.alumnos.length}/{confirmGrupo.capacidad} alumnos</span>
                                             </div>
                                         </div>
                                     </div>
                                     <p className="text-xs text-gray-400 text-center">¿Confirmas que quieres unirte a este grupo?</p>
                                     <div className="flex gap-3">
                                         <button onClick={() => setConfirmGrupo(null)} className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors">← Atrás</button>
-                                        <button onClick={handleConfirmar} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>Unirme ✓</button>
+                                        <button onClick={handleConfirmar} className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>Unirme <Check size={14} className="inline" /></button>
                                     </div>
                                 </div>
                             )}
@@ -192,7 +193,7 @@ export default function MateriasPage() {
                 <div className="fixed bottom-5 right-5 z-[99999] flex flex-col gap-2 pointer-events-none">
                     {toasts.map(t => (
                         <div key={t.id} className="flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border text-sm font-semibold pointer-events-auto anim-slide-down" style={{ background: '#f0fdf4', borderColor: '#86efac', color: '#16a34a', minWidth: '220px', maxWidth: '340px' }}>
-                            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style={{ background: '#22c55e' }}>✓</span>
+                            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white flex-shrink-0" style={{ background: '#22c55e' }}><Check size={12} /></span>
                             <span className="flex-1 leading-snug">{t.msg}</span>
                         </div>
                     ))}
@@ -230,7 +231,7 @@ function MateriaCard({ materia, onClick }) {
             {/* Cuerpo */}
             <div className="p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm">👨‍🏫</span>
+                    <span className="text-sm"><UserCheck size={14} /></span>
                     <p className="text-xs text-gray-500">{materia.docente}</p>
                 </div>
                 <div className="flex items-center justify-between">

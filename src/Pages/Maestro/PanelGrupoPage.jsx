@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { FileText, Presentation, FileIcon, FileSpreadsheet, Link2, Archive, Pencil, FolderOpen, Plus, ExternalLink, Download, Upload, X } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import Tabs from '../../Components/UI/Tabs'
 import Badge from '../../Components/UI/Badge'
@@ -15,7 +16,7 @@ const MOCK_MATERIALES = [
     { id: 4, tipo: 'pptx', nombre: 'Presentación Clase 8 – React Router.pptx', descripcion: '', fecha: '12 Mar 2026', tamaño: '5.1 MB' },
 ]
 
-const FILE_ICONS = { pdf: '📕', pptx: '📊', docx: '📄', xlsx: '📈', link: '🔗', zip: '🗄️' }
+const FILE_ICONS = { pdf: <FileText size={20} />, pptx: <Presentation size={20} />, docx: <FileIcon size={20} />, xlsx: <FileSpreadsheet size={20} />, link: <Link2 size={20} />, zip: <Archive size={20} /> }
 
 const canal = [
     {
@@ -91,7 +92,7 @@ export default function PanelGrupoPage() {
     function handleComment(pubId) {
         const texto = (inputs[pubId] || '').trim()
         if (!texto) return
-        const nuevo = { id: Date.now(), autor: 'Dr. Martínez', texto, tiempo: 'Ahora mismo' }
+        const nuevo = { id: crypto.randomUUID(), autor: 'Dr. Martínez', texto, tiempo: 'Ahora mismo' }
         setComentarios(prev => ({ ...prev, [pubId]: [...(prev[pubId] || []), nuevo] }))
         setInputs(prev => ({ ...prev, [pubId]: '' }))
     }
@@ -158,7 +159,7 @@ export default function PanelGrupoPage() {
                         className="flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold text-white flex-shrink-0 transition-opacity hover:opacity-90"
                         style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
                     >
-                        ✏️ Calificar
+                        <Pencil size={14} className="inline" /> Calificar
                     </button>
                 </div>
 
@@ -167,7 +168,7 @@ export default function PanelGrupoPage() {
                     tabs={[
                         { key: 'canal', label: 'Canal' },
                         { key: 'tareas', label: 'Tareas' },
-                        { key: 'materiales', label: '📁 Materiales' },
+                        { key: 'materiales', label: 'Materiales' },
                         { key: 'alumnos', label: `Alumnos (${GRUPO.alumnos})` },
                     ]}
                     active={tab}
@@ -287,7 +288,7 @@ export default function PanelGrupoPage() {
                                 className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
                                 style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
                             >
-                                ➕ Crear Nueva Tarea
+                                <Plus size={14} className="inline" /> Crear Nueva Tarea
                             </button>
                         </div>
 
@@ -329,7 +330,7 @@ export default function PanelGrupoPage() {
                 )}
 
                 {/* ── MODAL SUBIR MATERIAL ── */}
-                <ModalBase isOpen={matModalOpen} onClose={() => setMatModalOpen(false)} title="Subir material" icon="📁" maxWidth="max-w-md">
+                <ModalBase isOpen={matModalOpen} onClose={() => setMatModalOpen(false)} title="Subir material" icon={<FolderOpen size={18} />} maxWidth="max-w-md">
                     <div className="space-y-4 px-1">
                         {/* Tipo */}
                         <div>
@@ -342,12 +343,12 @@ export default function PanelGrupoPage() {
                                 onFocus={e => e.target.style.borderColor = '#FFA2B6'}
                                 onBlur={e => e.target.style.borderColor = 'transparent'}
                             >
-                                <option value="link">🔗 Enlace web</option>
-                                <option value="pdf">📕 PDF</option>
-                                <option value="pptx">📊 Presentación (.pptx)</option>
-                                <option value="docx">📄 Documento (.docx)</option>
-                                <option value="xlsx">📈 Hoja de cálculo (.xlsx)</option>
-                                <option value="zip">🗄️ Comprimido (.zip)</option>
+                                <option value="link">Enlace web</option>
+                                <option value="pdf">PDF</option>
+                                <option value="pptx">Presentación (.pptx)</option>
+                                <option value="docx">Documento (.docx)</option>
+                                <option value="xlsx">Hoja de cálculo (.xlsx)</option>
+                                <option value="zip">Comprimido (.zip)</option>
                             </select>
                         </div>
 
@@ -383,7 +384,7 @@ export default function PanelGrupoPage() {
                                 >
                                     {matFile ? (
                                         <>
-                                            <span className="text-2xl">{FILE_ICONS[matForm.tipo] ?? '📄'}</span>
+                                            <span className="text-2xl">{FILE_ICONS[matForm.tipo] ?? <FileIcon size={20} />}</span>
                                             <span className="font-semibold text-[#3d3d3d] text-center break-all px-2">{matFile.name}</span>
                                             <span className="text-xs text-gray-400">
                                                 {matFile.size > 1024 * 1024
@@ -393,7 +394,7 @@ export default function PanelGrupoPage() {
                                         </>
                                     ) : (
                                         <>
-                                            <span className="text-2xl">⬆️</span>
+                                            <span className="text-2xl"><Upload size={24} /></span>
                                             <span>Haz clic para seleccionar un archivo</span>
                                             <span className="text-xs">Máx. 30 MB</span>
                                         </>
@@ -459,7 +460,7 @@ export default function PanelGrupoPage() {
                                 className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
                                 style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
                             >
-                                ➕ Subir material
+                                <Plus size={14} className="inline" /> Subir material
                             </button>
                         </div>
 
@@ -467,7 +468,7 @@ export default function PanelGrupoPage() {
                         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                             {materiales.length === 0 ? (
                                 <div className="text-center py-14 text-gray-400">
-                                    <p className="text-3xl mb-2">📁</p>
+                                    <p className="text-3xl mb-2"><FolderOpen size={32} className="mx-auto text-gray-300" /></p>
                                     <p className="text-sm">No hay materiales aún</p>
                                 </div>
                             ) : (
@@ -478,7 +479,7 @@ export default function PanelGrupoPage() {
                                                 className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                                                 style={{ background: m.tipo === 'link' ? '#E43D1212' : '#EBE9E1' }}
                                             >
-                                                {FILE_ICONS[m.tipo] ?? '📄'}
+                                                {FILE_ICONS[m.tipo] ?? <FileIcon size={20} />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-semibold text-[#3d3d3d] truncate">{m.nombre}</p>
@@ -489,11 +490,11 @@ export default function PanelGrupoPage() {
                                                 <button
                                                     className="text-xs font-semibold px-3 py-1.5 rounded-lg"
                                                     style={{ background: '#E43D1210', color: 'var(--color-primary)' }}
-                                                >{m.tipo === 'link' ? '🔗 Abrir' : '⬇ Ver'}</button>
+                                                >{m.tipo === 'link' ? <><ExternalLink size={12} className="inline" /> Abrir</> : <><Download size={12} className="inline" /> Ver</>}</button>
                                                 <button
                                                     onClick={() => setMateriales(prev => prev.filter(x => x.id !== m.id))}
                                                     className="text-xs font-semibold px-3 py-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                                                >✕</button>
+                                                ><X size={14} /></button>
                                             </div>
                                         </div>
                                     ))}

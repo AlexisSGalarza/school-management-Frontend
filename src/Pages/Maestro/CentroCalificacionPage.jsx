@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Inbox, Video, Play, Paperclip, FileIcon, Lightbulb, CheckCircle } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import Avatar from '../../Components/UI/Avatar'
 import Badge from '../../Components/UI/Badge'
@@ -127,14 +128,14 @@ export default function CentroCalificacionPage() {
                         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                             {ultimaEntrega === null ? (
                                 <div className="flex flex-col items-center justify-center py-20 text-center px-6">
-                                    <span className="text-4xl mb-3">📭</span>
+                                    <span className="text-4xl mb-3"><Inbox size={40} className="text-gray-300" /></span>
                                     <p className="text-sm font-semibold text-[#3d3d3d]">Sin entrega</p>
                                     <p className="text-xs text-gray-400 mt-1">Este alumno aún no ha entregado nada.</p>
                                 </div>
                             ) : ultimaEntrega.tipo === 'video' ? (
                                 <div className="p-6 space-y-3">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-base">🎬</span>
+                                        <span className="text-base"><Video size={16} /></span>
                                         <p className="text-sm font-semibold text-[#3d3d3d]">Entrega en video</p>
                                         <Badge variant="secondary">Último intento</Badge>
                                     </div>
@@ -144,7 +145,7 @@ export default function CentroCalificacionPage() {
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-3 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-[#E43D12] transition-colors group"
                                     >
-                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: '#E43D1218' }}>▶️</div>
+                                        <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background: '#E43D1218' }}><Play size={20} /></div>
                                         <div>
                                             <p className="text-sm font-semibold text-[#3d3d3d] group-hover:text-[#E43D12] transition-colors">Abrir enlace de video</p>
                                             <p className="text-xs text-gray-400 truncate max-w-xs">{ultimaEntrega.url}</p>
@@ -155,12 +156,12 @@ export default function CentroCalificacionPage() {
                             ) : (
                                 <div className="p-6 space-y-3">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-base">📎</span>
+                                        <span className="text-base"><Paperclip size={16} /></span>
                                         <p className="text-sm font-semibold text-[#3d3d3d]">Archivo entregado</p>
                                         <Badge variant="secondary">Último intento</Badge>
                                     </div>
                                     <div className="flex items-center gap-4 p-4 rounded-xl" style={{ backgroundColor: 'var(--color-background)' }}>
-                                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shadow-sm">📄</div>
+                                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-2xl shadow-sm"><FileIcon size={24} /></div>
                                         <div>
                                             <p className="text-sm font-semibold text-[#3d3d3d]">{ultimaEntrega.nombre}</p>
                                             <p className="text-xs text-gray-400 mt-0.5">{ultimaEntrega.tamaño} · {ultimaEntrega.fecha}</p>
@@ -179,7 +180,7 @@ export default function CentroCalificacionPage() {
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-[#3d3d3d]">Historial de entregas</h3>
                                     <div className="flex items-center gap-2 px-3 py-1 rounded-xl text-xs font-semibold" style={{ background: '#EFB11D18', color: '#a07a00' }}>
-                                        💡 Se califica el último intento
+                                        <Lightbulb size={14} /> Se califica el último intento
                                     </div>
                                 </div>
                                 <div className="space-y-2">
@@ -195,7 +196,7 @@ export default function CentroCalificacionPage() {
                                             </span>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-xs font-semibold text-[#3d3d3d] truncate">
-                                                    {h.tipo === 'video' ? '🎬 Enlace de video' : `📄 ${h.nombre}`}
+                                                    {h.tipo === 'video' ? <><Video size={12} className="inline" /> Enlace de video</> : <><FileIcon size={12} className="inline" /> {h.nombre}</>}
                                                 </p>
                                                 <p className="text-[10px] text-gray-400">{h.fecha}</p>
                                             </div>
@@ -215,7 +216,7 @@ export default function CentroCalificacionPage() {
 
                         {saved && (
                             <div className="rounded-xl p-3 text-center anim-modal-in" style={{ background: '#10b98118', border: '1px solid #10b98130' }}>
-                                <p className="text-xs font-semibold text-emerald-600">✅ Guardado · Siguiente alumno…</p>
+                                <p className="text-xs font-semibold text-emerald-600"><CheckCircle size={14} className="inline" /> Guardado · Siguiente alumno…</p>
                             </div>
                         )}
 

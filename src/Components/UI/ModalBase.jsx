@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom'
+import { X } from 'lucide-react'
 
 /**
  * ModalBase — wrapper reutilizable para todos los modales.
@@ -48,7 +49,7 @@ export default function ModalBase({
                             onClick={onClose}
                             className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#EBE9E1] hover:text-[#E43D12] transition-all text-sm"
                         >
-                            ✕
+                            <X size={16} />
                         </button>
                     </div>
                 )}

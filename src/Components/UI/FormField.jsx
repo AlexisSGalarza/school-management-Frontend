@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eye, EyeOff, X } from 'lucide-react'
 
 /**
  * FormField — campo de formulario reutilizable.
@@ -73,7 +74,7 @@ export default function FormField({
                         onClick={() => setShowPass(s => !s)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors text-sm"
                     >
-                        {showPass ? '👁️' : '👁️‍🗨️'}
+                        {showPass ? <Eye size={16} /> : <EyeOff size={16} />}
                     </button>
                 </div>
             )}
@@ -84,7 +85,7 @@ export default function FormField({
 
             {error && (
                 <p className="text-xs mt-1 font-medium" style={{ color: 'var(--color-primary)' }}>
-                    ✗ {error}
+                    <X size={12} className="inline" /> {error}
                 </p>
             )}
         </div>

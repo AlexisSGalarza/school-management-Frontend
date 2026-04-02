@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Eye, EyeOff, X } from 'lucide-react'
 
 export default function SignUpForm({ onswitch }) {
     const [form, setForm] = useState({
@@ -55,7 +56,7 @@ export default function SignUpForm({ onswitch }) {
                         className="w-full px-3 py-2 rounded-lg border-2 text-xs outline-none transition-all focus:scale-105"
                         style={{ borderColor: 'var(--color-background)', backgroundColor: 'var(--color-background)' }}
                     />
-                    {errors.nombre && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>✗ {errors.nombre}</p>}
+                    {errors.nombre && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}><X size={12} className="inline" /> {errors.nombre}</p>}
                 </div>
 
                 <div>
@@ -67,7 +68,7 @@ export default function SignUpForm({ onswitch }) {
                         className="w-full px-3 py-2 rounded-lg border-2 text-xs outline-none transition-all focus:scale-105"
                         style={{ borderColor: 'var(--color-background)', backgroundColor: 'var(--color-background)' }}
                     />
-                    {errors.email && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>✗ {errors.email}</p>}
+                    {errors.email && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}><X size={12} className="inline" /> {errors.email}</p>}
                 </div>
 
                 <div>
@@ -85,10 +86,10 @@ export default function SignUpForm({ onswitch }) {
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-base"
                         >
-                            {showPassword ? '👁️' : '👁️‍🗨️'}
+                            {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
                         </button>
                     </div>
-                    {errors.password && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>✗ {errors.password}</p>}
+                    {errors.password && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}><X size={12} className="inline" /> {errors.password}</p>}
                 </div>
 
                 <div>
@@ -106,10 +107,10 @@ export default function SignUpForm({ onswitch }) {
                             onClick={() => setShowConfirm(!showConfirm)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-base"
                         >
-                            {showConfirm ? '👁️' : '👁️‍🗨️'}
+                            {showConfirm ? <Eye size={16} /> : <EyeOff size={16} />}
                         </button>
                     </div>
-                    {errors.confirm && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>✗ {errors.confirm}</p>}
+                    {errors.confirm && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}><X size={12} className="inline" /> {errors.confirm}</p>}
                 </div>
 
                 <button

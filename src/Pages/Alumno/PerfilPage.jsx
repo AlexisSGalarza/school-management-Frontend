@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Mail, GraduationCap, School, Calendar, Lock, CheckCircle, X } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Avatar from '../../Components/UI/Avatar'
 import Badge from '../../Components/UI/Badge'
@@ -83,10 +84,10 @@ export default function PerfilPage() {
                         {/* Info rows */}
                         <div className="space-y-3 text-left">
                             {[
-                                { icon: '📧', label: 'Correo electrónico', value: USER.email },
-                                { icon: '🎓', label: 'Matrícula', value: USER.matricula },
-                                { icon: '🏫', label: 'Ciclo activo', value: USER.ciclo },
-                                { icon: '📅', label: 'Fecha de registro', value: new Date(USER.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) },
+                                { icon: <Mail size={16} />, label: 'Correo electrónico', value: USER.email },
+                                { icon: <GraduationCap size={16} />, label: 'Matrícula', value: USER.matricula },
+                                { icon: <School size={16} />, label: 'Ciclo activo', value: USER.ciclo },
+                                { icon: <Calendar size={16} />, label: 'Fecha de registro', value: new Date(USER.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) },
                             ].map(row => (
                                 <div key={row.label} className="flex items-center gap-3 px-2">
                                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: '#FFA2B618' }}>
@@ -106,7 +107,7 @@ export default function PerfilPage() {
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: '#E43D1218' }}>
-                                    🔒
+                                    <Lock size={16} />
                                 </div>
                                 <div>
                                     <p className="text-sm font-semibold text-[#3d3d3d]">Contraseña</p>
@@ -124,7 +125,7 @@ export default function PerfilPage() {
 
                         {pwSuccess && (
                             <div className="mt-4 rounded-xl p-3 text-center" style={{ background: '#10b98118', border: '1px solid #10b98130' }}>
-                                <p className="text-sm font-semibold text-emerald-600">✅ Contraseña actualizada correctamente</p>
+                                <p className="text-sm font-semibold text-emerald-600"><CheckCircle size={16} className="inline" /> Contraseña actualizada correctamente</p>
                             </div>
                         )}
                     </Card>
@@ -156,13 +157,13 @@ export default function PerfilPage() {
                                 <div
                                     className="w-9 h-9 rounded-xl flex items-center justify-center text-base"
                                     style={{ background: '#E43D1218' }}
-                                >🔒</div>
+                                ><Lock size={16} /></div>
                                 <h2 className="text-base font-bold text-[#3d3d3d]">Cambiar contraseña</h2>
                             </div>
                             <button
                                 onClick={closePwModal}
                                 className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#EBE9E1] hover:text-[#E43D12] transition-all text-sm"
-                            >✕</button>
+                            ><X size={16} /></button>
                         </div>
                         {/* Form */}
                         <form onSubmit={handlePwSubmit} className="px-6 pb-6 pt-5 space-y-3">

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { BookOpen, ClipboardList, Upload, Zap, Hand } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import StatCard from '../../Components/UI/StatCard'
 import Card from '../../Components/UI/Card'
@@ -6,9 +7,9 @@ import Badge from '../../Components/UI/Badge'
 
 // ── Mock data ────────────────────────────────────────────────
 const stats = [
-    { label: 'Materias inscritas', value: 6, icon: '📚', color: '#E43D12' },
-    { label: 'Tareas pendientes', value: 4, icon: '📋', color: '#EFB11D' },
-    { label: 'Entregas esta semana', value: 2, icon: '📤', color: '#D6536D' },
+    { label: 'Materias inscritas', value: 6, icon: <BookOpen size={20} />, color: '#E43D12' },
+    { label: 'Tareas pendientes', value: 4, icon: <ClipboardList size={20} />, color: '#EFB11D' },
+    { label: 'Entregas esta semana', value: 2, icon: <Upload size={20} />, color: '#D6536D' },
 ]
 
 const urgentTasks = [
@@ -39,7 +40,7 @@ export default function DashboardPage() {
 
                 {/* Saludo */}
                 <div>
-                    <h1 className="text-2xl font-bold text-[#3d3d3d]">Buen día, Alexis 👋</h1>
+                    <h1 className="text-2xl font-bold text-[#3d3d3d]">Buen día, Alexis <Hand size={24} className="inline" /></h1>
                     <p className="text-sm text-gray-400 mt-0.5">Esto es lo que tienes pendiente hoy.</p>
                 </div>
 
@@ -64,7 +65,7 @@ export default function DashboardPage() {
                                     onClick={() => navigate(`/alumno/tareas/${task.id}`)}
                                     className={`bg-white rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:shadow-md transition-all duration-200 border-l-4 ${urgent ? 'border-[#EFB11D]' : 'border-transparent'}`}
                                 >
-                                    <span className="text-xl">{urgent ? '⚡' : '📋'}</span>
+                                    <span className="text-xl">{urgent ? <Zap size={20} /> : <ClipboardList size={20} />}</span>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-semibold text-[#3d3d3d] truncate">{task.title}</p>
                                         <p className="text-xs text-gray-400 mt-0.5">{task.materia}</p>

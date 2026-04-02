@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eye, EyeOff, X } from 'lucide-react'
 
 export default function LoginForm({ onswitch }) {
     const [email, setEmail] = useState('')
@@ -48,7 +49,7 @@ export default function LoginForm({ onswitch }) {
                         className="w-full px-3 py-2 rounded-lg border-2 text-xs outline-none transition-all focus:scale-105"
                         style={{ borderColor: 'var(--color-background)', backgroundColor: 'var(--color-background)' }}
                     />
-                    {error.email && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>✗ {error.email}</p>}
+                    {error.email && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}><X size={12} className="inline" /> {error.email}</p>}
                 </div>
 
                 <div>
@@ -66,10 +67,10 @@ export default function LoginForm({ onswitch }) {
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-sm"
                         >
-                            {showPassword ? '👁️' : '👁️‍🗨️'}
+                            {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
                         </button>
                     </div>
-                    {error.password && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}>✗ {error.password}</p>}
+                    {error.password && <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--color-primary)' }}><X size={12} className="inline" /> {error.password}</p>}
                 </div>
 
                 <div className="text-right pt-1">

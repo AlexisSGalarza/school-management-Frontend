@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { Home, BookOpen, ClipboardList, BarChart3, Hand, User, LogOut } from 'lucide-react'
 import Avatar from '../UI/Avatar'
 
 const navItems = [
-    { to: '/alumno/dashboard', icon: '🏠', label: 'Inicio' },
-    { to: '/alumno/materias', icon: '📚', label: 'Mis Materias' },
-    { to: '/alumno/tareas', icon: '📋', label: 'Tareas' },
-    { to: '/alumno/boleta', icon: '📊', label: 'Boleta' },
+    { to: '/alumno/dashboard', icon: Home, label: 'Inicio' },
+    { to: '/alumno/materias', icon: BookOpen, label: 'Mis Materias' },
+    { to: '/alumno/tareas', icon: ClipboardList, label: 'Tareas' },
+    { to: '/alumno/boleta', icon: BarChart3, label: 'Boleta' },
 ]
 
 const USER = { nombre: 'Alexis Galarza', ciclo: 'Enero – Junio 2026' }
@@ -79,7 +80,7 @@ export default function AppShell({ children }) {
                             className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto"
                             style={{ background: '#E43D1218' }}
                         >
-                            👋
+                            <Hand size={28} />
                         </div>
                         <div>
                             <p className="text-base font-bold text-[#3d3d3d]">¿Cerrar sesión?</p>
@@ -226,7 +227,7 @@ export default function AppShell({ children }) {
                                         onClick={() => { navigate('/alumno/perfil'); setUserMenuOpen(false) }}
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#3d3d3d] hover:bg-[#EBE9E1] transition-colors"
                                     >
-                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: '#FFA2B618' }}>👤</span>
+                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: '#FFA2B618' }}><User size={14} /></span>
                                         Mi Perfil
                                     </button>
                                     <div className="border-t border-gray-100 mx-3" />
@@ -235,7 +236,7 @@ export default function AppShell({ children }) {
                                         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors hover:bg-[#E43D1208] mb-1"
                                         style={{ color: 'var(--color-primary)' }}
                                     >
-                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: '#E43D1218' }}>🚪</span>
+                                        <span className="w-6 h-6 rounded-lg flex items-center justify-center text-xs" style={{ background: '#E43D1218' }}><LogOut size={14} /></span>
                                         Cerrar sesión
                                     </button>
                                 </div>
@@ -262,7 +263,7 @@ export default function AppShell({ children }) {
                                 }`
                             }
                         >
-                            <span className="text-lg leading-none">{item.icon}</span>
+                            <item.icon size={18} />
                             {item.label}
                         </NavLink>
                     ))}
@@ -312,8 +313,8 @@ function SidebarContent({ navigate, onNavClick }) {
                                 : {}
                             }
                         >
-                            <span className="w-7 h-7 flex items-center justify-center text-base flex-shrink-0">
-                                {item.icon}
+                            <span className="w-7 h-7 flex items-center justify-center flex-shrink-0">
+                                <item.icon size={18} />
                             </span>
                             <span className="flex-1">{item.label}</span>
                         </NavLink>

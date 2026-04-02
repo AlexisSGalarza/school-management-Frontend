@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { Calendar, BookOpen, School, Plus, Trash2, Pencil, GraduationCap, AlertTriangle, Check, Search, Link2, X } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import Tabs from '../../Components/UI/Tabs'
 import Badge from '../../Components/UI/Badge'
@@ -84,7 +85,7 @@ function TabCiclos() {
                     onClick={() => setModal(true)}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity"
                     style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
-                >➕ Nuevo Ciclo</button>
+                ><Plus size={14} className="inline" /> Nuevo Ciclo</button>
             </div>
 
             <div className="space-y-3">
@@ -99,7 +100,7 @@ function TabCiclos() {
                                 className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                                 style={{ background: c.activo ? '#E43D1218' : '#f3f4f6' }}
                             >
-                                📅
+                                <Calendar size={18} />
                             </div>
                             <div>
                                 <div className="flex items-center gap-2">
@@ -122,13 +123,13 @@ function TabCiclos() {
                                 : { background: '#E43D1210', color: 'var(--color-primary)' }
                             }
                         >
-                            {c.activo ? '✓ Activo' : 'Activar'}
+                            {c.activo ? <><Check size={14} className="inline" /> Activo</> : 'Activar'}
                         </button>
                     </div>
                 ))}
             </div>
 
-            <ModalBase isOpen={modal} onClose={() => setModal(false)} title="Nuevo Ciclo" icon="📅" maxWidth="max-w-sm">
+            <ModalBase isOpen={modal} onClose={() => setModal(false)} title="Nuevo Ciclo" icon={<Calendar size={18} />} maxWidth="max-w-sm">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <FormField label="Nombre del ciclo" name="nombre" value={form.nombre} onChange={handleChange} error={errors.nombre} placeholder="Ej. Agosto – Diciembre 2026" />
                     <div className="grid grid-cols-2 gap-3">
@@ -246,7 +247,7 @@ function TabMaterias() {
                     onClick={() => { setForm(f => ({ ...f, cicloId: String(activoId ?? '') })); setModal(true) }}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity"
                     style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
-                >📚 Nueva Materia</button>
+                ><BookOpen size={14} className="inline" /> Nueva Materia</button>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -262,7 +263,7 @@ function TabMaterias() {
                                         onClick={() => setDeleteId(m.id)}
                                         className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors text-xs"
                                         title="Eliminar"
-                                    >🗑</button>
+                                    ><Trash2 size={14} /></button>
                                 </div>
                             </div>
                             <p className="text-sm font-bold text-[#3d3d3d] leading-snug">{m.nombre}</p>
@@ -272,13 +273,13 @@ function TabMaterias() {
                 })}
                 {displayed.length === 0 && (
                     <div className="col-span-3 text-center py-12 text-gray-400">
-                        <p className="text-2xl mb-2">📚</p>
+                        <p className="text-2xl mb-2"><BookOpen size={28} className="mx-auto text-gray-300" /></p>
                         <p className="text-sm">No hay materias para este ciclo</p>
                     </div>
                 )}
             </div>
 
-            <ModalBase isOpen={modal} onClose={() => setModal(false)} title="Nueva Materia" icon="📚" maxWidth="max-w-sm">
+            <ModalBase isOpen={modal} onClose={() => setModal(false)} title="Nueva Materia" icon={<BookOpen size={18} />} maxWidth="max-w-sm">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -299,7 +300,7 @@ function TabMaterias() {
                                 onFocus={e => e.target.style.borderColor = '#FFA2B6'}
                                 onBlur={e => e.target.style.borderColor = errors.clave ? 'var(--color-primary)' : 'transparent'}
                             />
-                            {errors.clave && <p className="text-xs mt-1 font-medium" style={{ color: 'var(--color-primary)' }}>✗ {errors.clave}</p>}
+                            {errors.clave && <p className="text-xs mt-1 font-medium" style={{ color: 'var(--color-primary)' }}><X size={12} className="inline" /> {errors.clave}</p>}
                         </div>
                         <FormField label="Créditos" name="creditos" value={form.creditos} onChange={handleChange} type="number" />
                     </div>
@@ -311,7 +312,7 @@ function TabMaterias() {
                         onChange={handleChange}
                         error={errors.cicloId}
                         type="select"
-                        options={[{ value: '', label: '— Seleccionar ciclo —' }, ...ciclos.map(c => ({ value: String(c.id), label: c.nombre + (c.activo ? ' ✓' : '') }))]}
+                        options={[{ value: '', label: '— Seleccionar ciclo —' }, ...ciclos.map(c => ({ value: String(c.id), label: c.nombre + (c.activo ? ' (Activo)' : '') }))]}
                     />
                     <div className="flex gap-3 pt-1">
                         <button type="button" onClick={() => setModal(false)} className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors">Cancelar</button>
@@ -321,7 +322,7 @@ function TabMaterias() {
             </ModalBase>
 
             {/* Confirmar eliminar materia */}
-            <ModalBase isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Eliminar Materia" icon="🗑️" iconBg="#fee2e2" maxWidth="max-w-xs">
+            <ModalBase isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Eliminar Materia" icon={<Trash2 size={18} />} iconBg="#fee2e2" maxWidth="max-w-xs">
                 <div className="space-y-4">
                     <p className="text-sm text-gray-500 leading-relaxed">
                         ¿Eliminar esta materia? Los grupos que la usen perderán la referencia.
@@ -370,7 +371,7 @@ function TabGrupos() {
             )
             return !conflicto
         })
-    }, [enrollModal, grupos]) // eslint-disable-line react-hooks/exhaustive-deps
+    }, [enrollGrupo, grupos])
 
     const filteredEligible = eligibleAlumnos.filter(a =>
         a.nombre.toLowerCase().includes(enrollSearch.toLowerCase()) ||
@@ -457,7 +458,7 @@ function TabGrupos() {
                     onClick={() => { setForm(f => ({ ...f, cicloId: String(activoCiclo?.id ?? '') })); setModal(true) }}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity"
                     style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
-                >🏫 Nuevo Grupo</button>
+                ><School size={14} className="inline" /> Nuevo Grupo</button>
             </div>
 
             <div className="space-y-3">
@@ -479,12 +480,12 @@ function TabGrupos() {
                                         onClick={() => openEnrollModal(g.id)}
                                         className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
                                         style={{ background: '#FFA2B615', color: 'var(--color-secondary)' }}
-                                    >🎓 Inscribir</button>
+                                    ><GraduationCap size={14} className="inline" /> Inscribir</button>
                                     <button
                                         onClick={() => setDeleteGrupoId(g.id)}
                                         className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors text-xs"
                                         title="Eliminar grupo"
-                                    >🗑</button>
+                                    ><Trash2 size={14} /></button>
                                 </div>
                             </div>
                             {/* Barra de capacidad */}
@@ -503,7 +504,7 @@ function TabGrupos() {
                                     />
                                 </div>
                                 {pct >= 90 && (
-                                    <p className="text-xs mt-1 font-medium" style={{ color: '#EFB11D' }}>⚠️ Grupo casi lleno</p>
+                                    <p className="text-xs mt-1 font-medium" style={{ color: '#EFB11D' }}><AlertTriangle size={12} className="inline" /> Grupo casi lleno</p>
                                 )}
                             </div>
                         </div>
@@ -512,7 +513,7 @@ function TabGrupos() {
             </div>
 
             {/* Modal Nuevo Grupo */}
-            <ModalBase isOpen={modal} onClose={() => setModal(false)} title="Nuevo Grupo" icon="🏫" maxWidth="max-w-md">
+            <ModalBase isOpen={modal} onClose={() => setModal(false)} title="Nuevo Grupo" icon={<School size={18} />} maxWidth="max-w-md">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <FormField label="Clave del grupo" name="clave" value={form.clave} onChange={handleChange} error={errors.clave} placeholder="G41A" />
@@ -525,7 +526,7 @@ function TabGrupos() {
                         onChange={handleChange}
                         error={errors.cicloId}
                         type="select"
-                        options={[{ value: '', label: '— Seleccionar —' }, ...ciclos.map(c => ({ value: String(c.id), label: c.nombre + (c.activo ? ' ✓' : '') }))]}
+                        options={[{ value: '', label: '— Seleccionar —' }, ...ciclos.map(c => ({ value: String(c.id), label: c.nombre + (c.activo ? ' (Activo)' : '') }))]}
                     />
                     <FormField
                         label="Materia"
@@ -553,7 +554,7 @@ function TabGrupos() {
             </ModalBase>
 
             {/* Confirmar eliminar grupo */}
-            <ModalBase isOpen={!!deleteGrupoId} onClose={() => setDeleteGrupoId(null)} title="Eliminar Grupo" icon="🗑️" iconBg="#fee2e2" maxWidth="max-w-xs">
+            <ModalBase isOpen={!!deleteGrupoId} onClose={() => setDeleteGrupoId(null)} title="Eliminar Grupo" icon={<Trash2 size={18} />} iconBg="#fee2e2" maxWidth="max-w-xs">
                 <div className="space-y-4">
                     <p className="text-sm text-gray-500 leading-relaxed">
                         ¿Eliminar el grupo <strong>{grupos.find(g => g.id === deleteGrupoId)?.clave}</strong>? Se perderán todas las inscripciones.
@@ -570,7 +571,7 @@ function TabGrupos() {
                 isOpen={!!enrollModal}
                 onClose={() => setEnrollModal(null)}
                 title={`Inscribir en ${enrollGrupo?.clave ?? ''}`}
-                icon="🎓"
+                icon={<GraduationCap size={18} />}
                 maxWidth="max-w-md"
             >
                 {enrollGrupo && (
@@ -580,17 +581,17 @@ function TabGrupos() {
                             <button
                                 onClick={() => setEnrollTab('buscar')}
                                 className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${enrollTab === 'buscar' ? 'bg-white shadow-sm text-[#3d3d3d]' : 'text-gray-500 hover:text-gray-700'}`}
-                            >🔍 Buscar alumno</button>
+                            ><Search size={14} className="inline" /> Buscar alumno</button>
                             <button
                                 onClick={() => setEnrollTab('codigo')}
                                 className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${enrollTab === 'codigo' ? 'bg-white shadow-sm text-[#3d3d3d]' : 'text-gray-500 hover:text-gray-700'}`}
-                            >🔗 Código de acceso</button>
+                            ><Link2 size={14} className="inline" /> Código de acceso</button>
                         </div>
 
                         {enrollTab === 'buscar' && (
                             <div className="space-y-3">
                                 <div className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><Search size={14} /></span>
                                     <input
                                         type="text"
                                         placeholder="Buscar por nombre o matrícula…"

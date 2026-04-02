@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom'
+import { UserCheck, FileEdit, UsersRound, Plus, Pencil, Hand } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import StatCard from '../../Components/UI/StatCard'
 import Card from '../../Components/UI/Card'
 import Badge from '../../Components/UI/Badge'
 
 const stats = [
-    { label: 'Grupos activos', value: 4, icon: '👨‍🏫', color: '#E43D12' },
-    { label: 'Entregas sin calificar', value: 45, icon: '📝', color: '#EFB11D' },
-    { label: 'Alumnos totales', value: 112, icon: '👥', color: '#D6536D' },
+    { label: 'Grupos activos', value: 4, icon: <UserCheck size={20} />, color: '#E43D12' },
+    { label: 'Entregas sin calificar', value: 45, icon: <FileEdit size={20} />, color: '#EFB11D' },
+    { label: 'Alumnos totales', value: 112, icon: <UsersRound size={20} />, color: '#D6536D' },
 ]
 
 const pendientesPorGrupo = [
@@ -32,7 +33,7 @@ export default function DashboardMaestroPage() {
 
                 {/* Saludo */}
                 <div>
-                    <h1 className="text-2xl font-bold text-[#3d3d3d]">Buen día, Dr. Martínez 👋</h1>
+                    <h1 className="text-2xl font-bold text-[#3d3d3d]">Buen día, Dr. Martínez <Hand size={24} className="inline" /></h1>
                     <p className="text-sm text-gray-400 mt-0.5">Tienes entregas pendientes de calificar.</p>
                 </div>
 
@@ -46,9 +47,9 @@ export default function DashboardMaestroPage() {
                 {/* Accesos rápidos */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {[
-                        { label: 'Crear Nuevo Grupo', icon: '➕', to: '/maestro/grupos' },
-                        { label: 'Ir a Calificación', icon: '✏️', to: '/maestro/calificacion' },
-                        { label: 'Mis Grupos', icon: '👨‍🏫', to: '/maestro/grupos' },
+                        { label: 'Crear Nuevo Grupo', icon: <Plus size={20} />, to: '/maestro/grupos' },
+                        { label: 'Ir a Calificación', icon: <Pencil size={20} />, to: '/maestro/calificacion' },
+                        { label: 'Mis Grupos', icon: <UserCheck size={20} />, to: '/maestro/grupos' },
                     ].map(a => (
                         <button
                             key={a.label}
