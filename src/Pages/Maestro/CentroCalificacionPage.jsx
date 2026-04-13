@@ -1,61 +1,94 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Inbox, Video, Play, Paperclip, FileIcon, Lightbulb, CheckCircle } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import Avatar from '../../Components/UI/Avatar'
 import Badge from '../../Components/UI/Badge'
-
-const alumnos = [
-    { id: 1, nombre: 'Ana García', matricula: '20230003' },
-    { id: 2, nombre: 'María López', matricula: '20230001' },
-    { id: 3, nombre: 'Juan Pérez', matricula: '20230002' },
-    { id: 4, nombre: 'Carlos Ruiz', matricula: '20230004' },
-    { id: 5, nombre: 'Sofía Mendoza', matricula: '20230005' },
-]
-
-const entregas = {
-    1: [
-        { intento: 3, fecha: '2026-03-28 14:32', tipo: 'archivo', nombre: 'proyecto_final_v3.zip', tamaño: '4.2 MB', calificacion: null, comentario: '' },
-        { intento: 2, fecha: '2026-03-27 10:15', tipo: 'archivo', nombre: 'proyecto_final_v2.zip', tamaño: '3.8 MB', calificacion: 8.5, comentario: 'Buen avance, falta validación de formularios.' },
-        { intento: 1, fecha: '2026-03-25 18:00', tipo: 'video', url: 'https://youtube.com/watch?v=demo', calificacion: null, comentario: '' },
-    ],
-    2: [
-        { intento: 1, fecha: '2026-03-28 09:10', tipo: 'archivo', nombre: 'entrega_1.pdf', tamaño: '1.1 MB', calificacion: null, comentario: '' },
-    ],
-    3: [],
-    4: [
-        { intento: 2, fecha: '2026-03-27 20:55', tipo: 'archivo', nombre: 'reporte.docx', tamaño: '890 KB', calificacion: 7.0, comentario: 'Falta agregar conclusiones.' },
-    ],
-    5: [
-        { intento: 1, fecha: '2026-03-28 11:25', tipo: 'video', url: 'https://drive.google.com/file/demo', calificacion: null, comentario: '' },
-    ],
-}
+import { inscripcionesService } from '../../Services/inscripcionesService'
+import { entregasService } from '../../Services/entregasService'
+import { usersService } from '../../Services/usersService'
 
 export default function CentroCalificacionPage() {
     const { id: grupoId } = useParams()
     const navigate = useNavigate()
 
+    const [alumnos, setAlumnos] = useState([])
+    const [entregas, setEntregas] = useState({})
+    const [loading, setLoading] = useState(true)
     const [alumnoIdx, setAlumnoIdx] = useState(0)
     const [calificacion, setCalificacion] = useState('')
     const [comentario, setComentario] = useState('')
     const [saved, setSaved] = useState(false)
 
-    const alumno = alumnos[alumnoIdx]
+    useEffect(() => {
+        async function load() {
+            try {
+                const [inscRes, entregasRes, usersRes] = await Promise.all([
+                    inscripcionesService.getAll(),
+                    entregasService.getAll(),
+                    usersService.getAll(),
+                ])
+                const inscList = Array.isArray(inscRes) ? inscRes : inscRes.results ?? []
+                const entregasList = Array.isArray(entregasRes) ? entregasRes : entregasRes.results ?? []
+                const usersList = Array.isArray(usersRes) ? usersRes : usersRes.results ?? []
+
+                const usersMap = Object.fromEntries(usersList.map(u => [u.id, u]))
+                const alumnosGrupo = inscList
+                    .filter(i => String(i.grupo) === String(grupoId))
+                    .map(i => {
+                        const u = usersMap[i.alumno] ?? {}
+                        return { id: i.alumno, nombre: u.nombre ?? u.first_name ?? `Alumno ${i.alumno}`, matricula: u.matricula ?? u.username ?? '' }
+                    })
+                setAlumnos(alumnosGrupo)
+
+                const entregasMap = {}
+                alumnosGrupo.forEach(a => {
+                    entregasMap[a.id] = entregasList
+                        .filter(e => e.alumno === a.id && String(e.grupo ?? '') === String(grupoId))
+                        .sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0))
+                        .map((e, i, arr) => ({
+                            id: e.id,
+                            intento: arr.length - i,
+                            fecha: e.created_at ?? '',
+                            tipo: e.enlace ? 'video' : 'archivo',
+                            nombre: e.archivo?.split('/').pop() ?? 'Entrega',
+                            url: e.enlace ?? '',
+                            tamaño: '',
+                            calificacion: e.calificacion ?? null,
+                            comentario: e.comentario ?? '',
+                        }))
+                })
+                setEntregas(entregasMap)
+            } catch { /* ignore */ }
+            setLoading(false)
+        }
+        load()
+    }, [grupoId])
+
+    const alumno = alumnos[alumnoIdx] ?? { id: 0, nombre: '', matricula: '' }
     const historial = entregas[alumno.id] ?? []
     const ultimaEntrega = historial[0] ?? null
 
-    function guardarYSiguiente() {
-        if (!calificacion) return
-        setSaved(true)
-        setTimeout(() => {
-            setSaved(false)
-            setCalificacion('')
-            setComentario('')
-            if (alumnoIdx < alumnos.length - 1) {
-                setAlumnoIdx(i => i + 1)
-            }
-        }, 900)
+    async function guardarYSiguiente() {
+        if (!calificacion || !ultimaEntrega) return
+        try {
+            await entregasService.update(ultimaEntrega.id, {
+                calificacion: parseFloat(calificacion),
+                comentario,
+            })
+            setSaved(true)
+            setTimeout(() => {
+                setSaved(false)
+                setCalificacion('')
+                setComentario('')
+                if (alumnoIdx < alumnos.length - 1) {
+                    setAlumnoIdx(i => i + 1)
+                }
+            }, 900)
+        } catch { /* ignore */ }
     }
+
+    if (loading) return <TeacherShell><p className="text-center text-gray-400 py-20">Cargando…</p></TeacherShell>
 
     return (
         <TeacherShell>

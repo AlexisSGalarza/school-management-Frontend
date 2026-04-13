@@ -1,20 +1,38 @@
 import { useState } from 'react'
 import { Eye, EyeOff, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../Context/AuthContext'
 
 export default function LoginForm({ onswitch }) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [showPassword, setShowPassword] = useState(false)
-    const [error, setError] = useState('')
+    const [error, setError] = useState({})
+    const [loading, setLoading] = useState(false)
+    const { login } = useAuth()
+    const navigate = useNavigate()
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault()
         const errs = {}
         if (!email.includes('@')) errs.email = 'Email inválido'
         if (password.length < 6) errs.password = 'Mínimo 6 caracteres'
         setError(errs)
-        if (Object.keys(errs).length) { setError(errs); return }
-        console.log("Login:", { email, password })
+        if (Object.keys(errs).length) return
+
+        try {
+            setLoading(true)
+            const data = await login(email, password)
+            const rol = (data.rol ?? '').toLowerCase()
+            if (rol === 'admin') navigate('/admin/dashboard')
+            else if (rol === 'docente') navigate('/maestro/dashboard')
+            else if (rol === 'alumno') navigate('/alumno/dashboard')
+            else navigate('/admin/dashboard')
+        } catch (err) {
+            setError({ general: err.message })
+        } finally {
+            setLoading(false)
+        }
     }
 
     return (
@@ -79,12 +97,17 @@ export default function LoginForm({ onswitch }) {
                     </button>
                 </div>
 
+                {error.general && (
+                    <p className="text-xs text-red-500 text-center"><X size={12} className="inline" /> {error.general}</p>
+                )}
+
                 <button
                     type="submit"
-                    className="w-full text-white py-2 rounded-lg uppercase text-xs tracking-widest font-semibold transition-all hover:shadow-lg hover:scale-105 active:scale-95 mt-2 my-2"
+                    disabled={loading}
+                    className="w-full text-white py-2 rounded-lg uppercase text-xs tracking-widest font-semibold transition-all hover:shadow-lg hover:scale-105 active:scale-95 mt-2 my-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{ backgroundColor: 'var(--color-primary)' }}
                 >
-                    Inicia Sesión
+                    {loading ? 'Cargando...' : 'Inicia Sesión'}
                 </button>
             </form>
 

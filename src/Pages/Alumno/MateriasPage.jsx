@@ -1,44 +1,63 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { Link2, BookOpen, UserCheck, School, Calendar, Users, CheckCircle, AlertTriangle, X, Check } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Badge from '../../Components/UI/Badge'
-import { GRUPOS, CICLOS } from '../../data/mockAcademicStructure'
+import { gruposService } from '../../Services/gruposService'
+import { ciclosService } from '../../Services/ciclosService'
+import { inscripcionesService } from '../../Services/inscripcionesService'
+import { useAuth } from '../../Context/AuthContext'
 
-// ID del alumno simulado (el que está logueado)
-const MY_ALUMNO_ID = 1
-
-// ── Mock data ────────────────────────────────────────────────
 const COLORES = ['#E43D12', '#D6536D', '#EFB11D', '#FFA2B6', '#7c3aed', '#0891b2']
 
-function grupoToMateria(g, idx) {
+function grupoToMateria(g, idx, ciclos) {
     return {
         id: g.id,
         nombre: g.materia,
         clave: g.clave,
         docente: g.docente,
         grupo: g.clave,
-        ciclo: CICLOS.find(c => c.id === g.cicloId)?.nombre ?? '—',
+        ciclo: (ciclos ?? []).find(c => c.id === g.cicloId)?.nombre ?? '—',
         tareasNuevas: 0,
         color: COLORES[idx % COLORES.length],
     }
 }
 
-// Simula las materias iniciales del alumno
-const INITIAL_MATERIAS = GRUPOS
-    .filter(g => g.alumnos.includes(MY_ALUMNO_ID))
-    .map(grupoToMateria)
-// ─────────────────────────────────────────────────────────────
-
 export default function MateriasPage() {
     const navigate = useNavigate()
-    const [materias, setMaterias] = useState(INITIAL_MATERIAS)
+    const { user } = useAuth()
+    const [materias, setMaterias] = useState([])
+    const [allGrupos, setAllGrupos] = useState([])
+    const [ciclos, setCiclos] = useState([])
+    const [loading, setLoading] = useState(true)
     const [codigoModal, setCodigoModal] = useState(false)
     const [codigo, setCodigo] = useState('')
     const [codigoError, setCodigoError] = useState('')
-    const [confirmGrupo, setConfirmGrupo] = useState(null)   // grupo encontrado, esperando confirm
+    const [confirmGrupo, setConfirmGrupo] = useState(null)
     const [toasts, setToasts] = useState([])
+
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const [gruposData, ciclosData] = await Promise.all([
+                    gruposService.getAll(),
+                    ciclosService.getAll(),
+                ])
+                const grupos = Array.isArray(gruposData) ? gruposData : gruposData.results ?? []
+                const cics = Array.isArray(ciclosData) ? ciclosData : ciclosData.results ?? []
+                setAllGrupos(grupos)
+                setCiclos(cics)
+                const misGrupos = grupos.filter(g => (g.alumnos ?? []).includes(user?.id))
+                setMaterias(misGrupos.map((g, i) => grupoToMateria(g, i, cics)))
+            } catch (err) {
+                console.error('Error cargando materias:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [user])
 
     function addToast(msg, type = 'success') {
         const id = Date.now()
@@ -57,59 +76,69 @@ export default function MateriasPage() {
         e.preventDefault()
         const trimmed = codigo.trim().toUpperCase()
         if (!trimmed) { setCodigoError('Ingresa el código que te compartió tu docente'); return }
-        const grupo = GRUPOS.find(g => (g.codigo ?? '').toUpperCase() === trimmed)
+        const grupo = allGrupos.find(g => (g.codigo ?? '').toUpperCase() === trimmed)
         if (!grupo) { setCodigoError('Código no encontrado. Verifica que lo hayas escrito correctamente.'); return }
-        if (grupo.alumnos.includes(MY_ALUMNO_ID) || materias.some(m => m.id === grupo.id)) {
+        if ((grupo.alumnos ?? []).includes(user?.id) || materias.some(m => m.id === grupo.id)) {
             setCodigoError('Ya estás inscrito en este grupo.'); return
         }
         setCodigoError('')
         setConfirmGrupo(grupo)
     }
 
-    function handleConfirmar() {
-        const idx = materias.length
-        setMaterias(prev => [...prev, grupoToMateria(confirmGrupo, idx)])
-        const ciclo = CICLOS.find(c => c.id === confirmGrupo.cicloId)
-        addToast(`¡Inscrito en ${confirmGrupo.materia} (${confirmGrupo.clave})!`)
-        setCodigoModal(false)
-        setConfirmGrupo(null)
-        setCodigo('')
-        void ciclo
+    async function handleConfirmar() {
+        try {
+            await inscripcionesService.create({ grupo: confirmGrupo.id, alumno: user?.id })
+            const idx = materias.length
+            setMaterias(prev => [...prev, grupoToMateria(confirmGrupo, idx, ciclos)])
+            addToast(`¡Inscrito en ${confirmGrupo.materia} (${confirmGrupo.clave})!`)
+            setCodigoModal(false)
+            setConfirmGrupo(null)
+            setCodigo('')
+        } catch (err) {
+            setCodigoError('Error al inscribirse. Intenta de nuevo.')
+            console.error(err)
+        }
     }
 
     return (
         <AppShell>
-            <div className="max-w-6xl mx-auto space-y-6">
-
-                {/* Header */}
-                <div className="flex items-start justify-between gap-4 flex-wrap">
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#3d3d3d]">Mis Materias</h1>
-                        <p className="text-sm text-gray-400 mt-0.5">Ciclo: Enero – Junio 2026 · {materias.length} materia{materias.length !== 1 ? 's' : ''} inscrita{materias.length !== 1 ? 's' : ''}</p>
-                    </div>
-                    <button
-                        onClick={openModal}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity shadow-sm"
-                        style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
-                    >
-                        <Link2 size={16} className="inline" /> Unirse con código
-                    </button>
+            {loading ? (
+                <div className="flex items-center justify-center h-64">
+                    <p className="text-gray-400 text-sm">Cargando materias…</p>
                 </div>
+            ) : (
+                <div className="max-w-6xl mx-auto space-y-6">
 
-                {/* Grid de cards */}
-                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                    {materias.map(m => (
-                        <MateriaCard key={m.id} materia={m} onClick={() => navigate(`/alumno/materias/${m.id}`)} />
-                    ))}
-                    {materias.length === 0 && (
-                        <div className="col-span-3 bg-white rounded-2xl p-12 text-center shadow-sm">
-                            <p className="text-4xl mb-3"><BookOpen size={40} className="mx-auto text-gray-300" /></p>
-                            <p className="text-sm font-semibold text-gray-500 mb-1">Aún no tienes materias inscritas</p>
-                            <p className="text-xs text-gray-400">Usa el botón "Unirse con código" para inscribirte a un grupo</p>
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                            <h1 className="text-2xl font-bold text-[#3d3d3d]">Mis Materias</h1>
+                            <p className="text-sm text-gray-400 mt-0.5">Ciclo: Enero – Junio 2026 · {materias.length} materia{materias.length !== 1 ? 's' : ''} inscrita{materias.length !== 1 ? 's' : ''}</p>
                         </div>
-                    )}
+                        <button
+                            onClick={openModal}
+                            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity shadow-sm"
+                            style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}
+                        >
+                            <Link2 size={16} className="inline" /> Unirse con código
+                        </button>
+                    </div>
+
+                    {/* Grid de cards */}
+                    <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                        {materias.map(m => (
+                            <MateriaCard key={m.id} materia={m} onClick={() => navigate(`/alumno/materias/${m.id}`)} />
+                        ))}
+                        {materias.length === 0 && (
+                            <div className="col-span-3 bg-white rounded-2xl p-12 text-center shadow-sm">
+                                <p className="text-4xl mb-3"><BookOpen size={40} className="mx-auto text-gray-300" /></p>
+                                <p className="text-sm font-semibold text-gray-500 mb-1">Aún no tienes materias inscritas</p>
+                                <p className="text-xs text-gray-400">Usa el botón "Unirse con código" para inscribirte a un grupo</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Modal Unirse con código */}
             {codigoModal && createPortal(
@@ -170,8 +199,8 @@ export default function MateriasPage() {
                                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
                                                 <span><UserCheck size={14} className="inline" /> {confirmGrupo.docente}</span>
                                                 <span><School size={14} className="inline" /> {confirmGrupo.clave}</span>
-                                                <span><Calendar size={14} className="inline" /> {CICLOS.find(c => c.id === confirmGrupo.cicloId)?.nombre ?? '—'}</span>
-                                                <span><Users size={14} className="inline" /> {confirmGrupo.alumnos.length}/{confirmGrupo.capacidad} alumnos</span>
+                                                <span><Calendar size={14} className="inline" /> {ciclos.find(c => c.id === confirmGrupo.cicloId)?.nombre ?? '—'}</span>
+                                                <span><Users size={14} className="inline" /> {(confirmGrupo.alumnos ?? []).length}/{confirmGrupo.capacidad} alumnos</span>
                                             </div>
                                         </div>
                                     </div>

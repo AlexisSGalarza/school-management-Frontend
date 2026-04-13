@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { CheckCircle, Lightbulb } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
+import { tareasService } from '../../Services/tareasService'
 
 export default function CreadorTareaPage() {
     const { id: grupoId } = useParams()
@@ -33,12 +34,20 @@ export default function CreadorTareaPage() {
         return errs
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault()
         const errs = validate()
         if (Object.keys(errs).length) { setErrors(errs); return }
-        setSuccess(true)
-        setTimeout(() => navigate(`/maestro/grupos/${grupoId}`), 1800)
+        try {
+            await tareasService.create({
+                titulo: form.titulo.trim(),
+                descripcion: form.descripcion.trim(),
+                fecha_limite: `${form.fechaLimite}T${form.horaLimite}`,
+                grupo: grupoId,
+            })
+            setSuccess(true)
+            setTimeout(() => navigate(`/maestro/grupos/${grupoId}`), 1800)
+        } catch { /* ignore */ }
     }
 
     return (

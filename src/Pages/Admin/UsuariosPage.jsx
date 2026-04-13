@@ -1,11 +1,11 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Plus, Pencil, Search } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import Badge from '../../Components/UI/Badge'
 import PageHeader from '../../Components/UI/PageHeader'
 import ModalBase from '../../Components/UI/ModalBase'
 import FormField from '../../Components/UI/FormField'
-import { MOCK_USERS, ROL_OPTIONS } from '../../data/mockUsers'
+import { usersService } from '../../Services/usersService'
 import { useToast } from '../../Context/ToastContext'
 
 // Mapa de variantes de Badge por rol
@@ -14,6 +14,13 @@ const ROL_BADGE = {
     Docente: 'secondary',
     Admin: 'primary',
 }
+
+const ROL_OPTIONS = [
+    { value: '', label: 'Todos los roles' },
+    { value: 'Alumno', label: 'Alumno' },
+    { value: 'Docente', label: 'Docente' },
+    { value: 'Admin', label: 'Admin' },
+]
 
 const EMPTY_FORM = { nombre: '', email: '', matricula: '', rol: 'Alumno', password: '' }
 const EMPTY_EDIT_FORM = { nombre: '', email: '', matricula: '', rol: 'Alumno' }
@@ -46,16 +53,22 @@ const PAGE_SIZE = 6
 
 export default function UsuariosPage() {
     const { addToast } = useToast()
-    const [users, setUsers] = useState(MOCK_USERS)
+    const [users, setUsers] = useState([])
     const [search, setSearch] = useState('')
     const [rolFiltro, setRolFiltro] = useState('')
     const [page, setPage] = useState(1)
     const [modal, setModal] = useState(false)
     const [form, setForm] = useState(EMPTY_FORM)
     const [errors, setErrors] = useState({})
-    const [editUser, setEditUser] = useState(null)   // user object being edited
+    const [editUser, setEditUser] = useState(null)
     const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM)
     const [editErrors, setEditErrors] = useState({})
+
+    useEffect(() => {
+        usersService.getAll()
+            .then(data => setUsers(Array.isArray(data) ? data : data.results ?? []))
+            .catch(err => console.error('Error cargando usuarios:', err))
+    }, [])
 
     const filtered = useMemo(() => {
         const q = search.toLowerCase()
@@ -75,26 +88,29 @@ export default function UsuariosPage() {
         setErrors(prev => ({ ...prev, [name]: undefined }))
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault()
         const errs = validate(form)
         if (Object.keys(errs).length) { setErrors(errs); return }
-        const newUser = {
-            id: users.length + 1,
-            nombre: form.nombre.trim(),
-            matricula: form.matricula.trim(),
-            email: form.email.trim(),
-            rol: form.rol,
-            activo: true,
+        try {
+            const newUser = await usersService.create({
+                nombre: form.nombre.trim(),
+                matricula: form.matricula.trim(),
+                email: form.email.trim(),
+                rol: form.rol,
+                password: form.password,
+            })
+            setUsers(prev => [newUser, ...prev])
+            setModal(false)
+            setForm(EMPTY_FORM)
+            setErrors({})
+            setPage(1)
+            setSearch('')
+            setRolFiltro('')
+            addToast(`Usuario "${newUser.nombre}" registrado`)
+        } catch (err) {
+            addToast('Error al registrar usuario', 'error')
         }
-        setUsers(prev => [newUser, ...prev])
-        setModal(false)
-        setForm(EMPTY_FORM)
-        setErrors({})
-        setPage(1)
-        setSearch('')
-        setRolFiltro('')
-        addToast(`Usuario "${newUser.nombre}" registrado`)
     }
 
     function openEdit(user) {
@@ -109,22 +125,34 @@ export default function UsuariosPage() {
         setEditErrors(prev => ({ ...prev, [name]: undefined }))
     }
 
-    function handleEditSubmit(e) {
+    async function handleEditSubmit(e) {
         e.preventDefault()
         const errs = validateEdit(editForm)
         if (Object.keys(errs).length) { setEditErrors(errs); return }
-        setUsers(prev => prev.map(u => u.id === editUser.id
-            ? { ...u, nombre: editForm.nombre.trim(), email: editForm.email.trim(), matricula: editForm.matricula.trim(), rol: editForm.rol }
-            : u
-        ))
-        addToast(`Usuario "${editForm.nombre.trim()}" actualizado`)
-        setEditUser(null)
+        try {
+            const updated = await usersService.update(editUser.id, {
+                nombre: editForm.nombre.trim(),
+                email: editForm.email.trim(),
+                matricula: editForm.matricula.trim(),
+                rol: editForm.rol,
+            })
+            setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...updated } : u))
+            addToast(`Usuario "${editForm.nombre.trim()}" actualizado`)
+            setEditUser(null)
+        } catch (err) {
+            addToast('Error al actualizar usuario', 'error')
+        }
     }
 
-    function toggleActivo(id) {
+    async function toggleActivo(id) {
         const u = users.find(x => x.id === id)
-        setUsers(prev => prev.map(x => x.id === id ? { ...x, activo: !x.activo } : x))
-        addToast(`${u?.nombre}: ${u?.activo ? 'desactivado' : 'activado'}`, u?.activo ? 'warning' : 'success')
+        try {
+            await usersService.update(id, { activo: !u.activo })
+            setUsers(prev => prev.map(x => x.id === id ? { ...x, activo: !x.activo } : x))
+            addToast(`${u?.nombre}: ${u?.activo ? 'desactivado' : 'activado'}`, u?.activo ? 'warning' : 'success')
+        } catch (err) {
+            addToast('Error al cambiar estado', 'error')
+        }
     }
 
     return (

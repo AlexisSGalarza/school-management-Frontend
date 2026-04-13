@@ -1,29 +1,18 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ClipboardList, CheckCircle, XCircle, Zap, PartyPopper } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Tabs from '../../Components/UI/Tabs'
 import Badge from '../../Components/UI/Badge'
-
-// ── Mock data ────────────────────────────────────────────────
-const tareas = [
-    { id: 1, titulo: 'Proyecto final React', materia: 'Desarrollo Web', fechaLimite: '2026-03-28', estado: 'pendiente', calificacion: null },
-    { id: 2, titulo: 'Reporte de laboratorio', materia: 'Física II', fechaLimite: '2026-03-29', estado: 'pendiente', calificacion: null },
-    { id: 3, titulo: 'Ensayo argumentativo', materia: 'Español', fechaLimite: '2026-04-02', estado: 'pendiente', calificacion: null },
-    { id: 4, titulo: 'Ejercicio de rutas', materia: 'Desarrollo Web', fechaLimite: '2026-03-20', estado: 'entregada', calificacion: 92 },
-    { id: 5, titulo: 'Integral de partes', materia: 'Cálculo Integral', fechaLimite: '2026-03-18', estado: 'entregada', calificacion: null },
-    { id: 6, titulo: 'Diagrama ER', materia: 'Base de Datos', fechaLimite: '2026-03-15', estado: 'vencida', calificacion: null },
-    { id: 7, titulo: 'Mapa conceptual OOP', materia: 'Programación OOP', fechaLimite: '2026-03-10', estado: 'vencida', calificacion: null },
-]
-
-const materias = ['Todas', 'Desarrollo Web', 'Física II', 'Cálculo Integral', 'Español', 'Programación OOP', 'Base de Datos']
+import { tareasService } from '../../Services/tareasService'
+import { gruposService } from '../../Services/gruposService'
+import { useAuth } from '../../Context/AuthContext'
 
 const TABS = [
     { key: 'pendiente', label: 'Pendientes' },
     { key: 'entregada', label: 'Entregadas' },
     { key: 'vencida', label: 'Vencidas' },
 ]
-// ─────────────────────────────────────────────────────────────
 
 function isUrgent(fecha) {
     const diff = (new Date(fecha) - new Date()) / (1000 * 60 * 60)
@@ -33,7 +22,37 @@ function isUrgent(fecha) {
 export default function TareasPage() {
     const [tab, setTab] = useState('pendiente')
     const [filtroMateria, setFiltroMateria] = useState('Todas')
+    const [tareas, setTareas] = useState([])
+    const [loading, setLoading] = useState(true)
     const navigate = useNavigate()
+    const { user } = useAuth()
+
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const [tareasData, gruposData] = await Promise.all([
+                    tareasService.getAll(),
+                    gruposService.getAll(),
+                ])
+                const allTareas = Array.isArray(tareasData) ? tareasData : tareasData.results ?? []
+                const grupos = Array.isArray(gruposData) ? gruposData : gruposData.results ?? []
+                const misGrupoIds = grupos.filter(g => (g.alumnos ?? []).includes(user?.id)).map(g => g.id)
+                setTareas(allTareas.filter(t => misGrupoIds.includes(t.grupo)).map(t => ({
+                    ...t,
+                    fechaLimite: t.fechaLimite ?? t.fecha_limite,
+                    materia: t.materia_nombre ?? t.materia ?? '—',
+                    estado: t.estado ?? 'pendiente',
+                })))
+            } catch (err) {
+                console.error('Error cargando tareas:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [user])
+
+    const materias = useMemo(() => ['Todas', ...new Set(tareas.map(t => t.materia))], [tareas])
 
     const filtered = tareas.filter(t => {
         const matchesTab = t.estado === tab
@@ -95,8 +114,8 @@ function TareaCard({ tarea, onClick }) {
         <div
             onClick={onClick}
             className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 hover:shadow-md ${vencida
-                    ? 'border-gray-100 opacity-60 bg-gray-50'
-                    : 'border-transparent bg-[#EBE9E1] hover:border-[#FFA2B6]'
+                ? 'border-gray-100 opacity-60 bg-gray-50'
+                : 'border-transparent bg-[#EBE9E1] hover:border-[#FFA2B6]'
                 }`}
         >
             <span className="text-2xl flex-shrink-0">

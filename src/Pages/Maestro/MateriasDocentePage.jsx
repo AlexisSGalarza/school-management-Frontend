@@ -1,16 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { BookOpen, Pencil, Trash2 } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import PageHeader from '../../Components/UI/PageHeader'
 import ModalBase from '../../Components/UI/ModalBase'
 import FormField from '../../Components/UI/FormField'
 import Badge from '../../Components/UI/Badge'
-
-const INIT_MATERIAS = [
-    { id: 1, clave: 'INF-305', nombre: 'Desarrollo Web', descripcion: 'HTML, CSS, JavaScript, React y REST APIs.', activa: true },
-    { id: 2, clave: 'INF-210', nombre: 'Estructura de Datos', descripcion: 'Listas, pilas, colas, árboles y grafos.', activa: true },
-    { id: 3, clave: 'INF-101', nombre: 'Introducción a la Progr.', descripcion: 'Fundamentos de programación con Python.', activa: false },
-]
+import { materiasService } from '../../Services/materiasService'
 
 const EMPTY = { clave: '', nombre: '', descripcion: '' }
 
@@ -22,12 +17,24 @@ function validate(form) {
 }
 
 export default function MateriasDocentePage() {
-    const [materias, setMaterias] = useState(INIT_MATERIAS)
+    const [materias, setMaterias] = useState([])
+    const [loading, setLoading] = useState(true)
     const [modal, setModal] = useState(false)
     const [editId, setEditId] = useState(null)
     const [form, setForm] = useState(EMPTY)
     const [errors, setErrors] = useState({})
     const [deleteId, setDeleteId] = useState(null)
+
+    async function fetchMaterias() {
+        try {
+            const res = await materiasService.getAll()
+            const list = Array.isArray(res) ? res : res.results ?? []
+            setMaterias(list.map(m => ({ ...m, activa: m.activa ?? m.is_active ?? true })))
+        } catch { /* ignore */ }
+        setLoading(false)
+    }
+
+    useEffect(() => { fetchMaterias() }, [])
 
     function openCreate() {
         setEditId(null)
@@ -49,38 +56,47 @@ export default function MateriasDocentePage() {
         setErrors(prev => ({ ...prev, [name]: undefined }))
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault()
         const errs = validate(form)
         if (Object.keys(errs).length) { setErrors(errs); return }
 
-        if (editId) {
-            setMaterias(prev => prev.map(m => m.id === editId
-                ? { ...m, clave: form.clave.trim().toUpperCase(), nombre: form.nombre.trim(), descripcion: form.descripcion.trim() }
-                : m
-            ))
-        } else {
-            setMaterias(prev => [...prev, {
-                id: Date.now(),
-                clave: form.clave.trim().toUpperCase(),
-                nombre: form.nombre.trim(),
-                descripcion: form.descripcion.trim(),
-                activa: true,
-            }])
-        }
-
-        setModal(false)
-        setForm(EMPTY)
-        setEditId(null)
+        try {
+            if (editId) {
+                await materiasService.update(editId, {
+                    clave: form.clave.trim().toUpperCase(),
+                    nombre: form.nombre.trim(),
+                    descripcion: form.descripcion.trim(),
+                })
+            } else {
+                await materiasService.create({
+                    clave: form.clave.trim().toUpperCase(),
+                    nombre: form.nombre.trim(),
+                    descripcion: form.descripcion.trim(),
+                })
+            }
+            setModal(false)
+            setForm(EMPTY)
+            setEditId(null)
+            fetchMaterias()
+        } catch { /* ignore */ }
     }
 
-    function handleDelete() {
-        setMaterias(prev => prev.filter(m => m.id !== deleteId))
-        setDeleteId(null)
+    async function handleDelete() {
+        try {
+            await materiasService.remove(deleteId)
+            setDeleteId(null)
+            fetchMaterias()
+        } catch { /* ignore */ }
     }
 
-    function toggleActiva(id) {
-        setMaterias(prev => prev.map(m => m.id === id ? { ...m, activa: !m.activa } : m))
+    async function toggleActiva(id) {
+        const m = materias.find(m => m.id === id)
+        if (!m) return
+        try {
+            await materiasService.update(id, { activa: !m.activa, is_active: !m.activa })
+            fetchMaterias()
+        } catch { /* ignore */ }
     }
 
     return (

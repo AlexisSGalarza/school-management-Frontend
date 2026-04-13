@@ -1,47 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { GraduationCap, UsersRound, BookOpen, School, Plus, BarChart3, User, Calendar, UserPlus } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import StatCard from '../../Components/UI/StatCard'
-import { MOCK_USERS } from '../../data/mockUsers'
-import { GRUPOS, MATERIAS, getCicloActivo } from '../../data/mockAcademicStructure'
+import { usersService } from '../../Services/usersService'
+import { gruposService } from '../../Services/gruposService'
+import { materiasService } from '../../Services/materiasService'
+import { ciclosService } from '../../Services/ciclosService'
 import { useNavigate } from 'react-router-dom'
-
-const cicloActivo = getCicloActivo()
-
-const stats = [
-    {
-        label: 'Alumnos Activos',
-        value: String(MOCK_USERS.filter(u => u.rol === 'Alumno' && u.activo).length),
-        icon: <GraduationCap size={20} />,
-        iconBg: '#FFA2B618',
-        change: '+3 este ciclo',
-        up: true,
-    },
-    {
-        label: 'Docentes Activos',
-        value: String(MOCK_USERS.filter(u => u.rol === 'Docente' && u.activo).length),
-        icon: <UsersRound size={20} />,
-        iconBg: '#D6536D18',
-        change: 'Sin cambios',
-        up: null,
-    },
-    {
-        label: 'Materias en Curso',
-        value: String(MATERIAS.filter(m => m.cicloId === cicloActivo.id).length),
-        icon: <BookOpen size={20} />,
-        iconBg: '#E43D1218',
-        change: cicloActivo.nombre,
-        up: null,
-    },
-    {
-        label: 'Grupos Activos',
-        value: String(GRUPOS.filter(g => g.cicloId === cicloActivo.id).length),
-        icon: <School size={20} />,
-        iconBg: '#EFB11D18',
-        change: `${GRUPOS.reduce((a, g) => a + g.alumnos.length, 0)} alumnos inscritos`,
-        up: true,
-    },
-]
 
 const acciones = [
     { label: 'Registrar Usuario', icon: <Plus size={18} />, to: '/admin/usuarios', color: 'var(--color-primary)' },
@@ -59,6 +24,69 @@ const ACTIVIDAD = [
 
 export default function DashboardAdminPage() {
     const navigate = useNavigate()
+    const [users, setUsers] = useState([])
+    const [grupos, setGrupos] = useState([])
+    const [materias, setMaterias] = useState([])
+    const [cicloActivo, setCicloActivo] = useState({ nombre: '—' })
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const [u, g, m, c] = await Promise.all([
+                    usersService.getAll(),
+                    gruposService.getAll(),
+                    materiasService.getAll(),
+                    ciclosService.getAll(),
+                ])
+                setUsers(Array.isArray(u) ? u : u.results ?? [])
+                setGrupos(Array.isArray(g) ? g : g.results ?? [])
+                setMaterias(Array.isArray(m) ? m : m.results ?? [])
+                const ciclos = Array.isArray(c) ? c : c.results ?? []
+                setCicloActivo(ciclos.find(x => x.activo) ?? ciclos[0] ?? { nombre: '—' })
+            } catch (err) {
+                console.error('Error cargando dashboard:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [])
+
+    const stats = [
+        {
+            label: 'Alumnos Activos',
+            value: String(users.filter(u => u.rol === 'Alumno' && u.activo).length),
+            icon: <GraduationCap size={20} />,
+            iconBg: '#FFA2B618',
+            change: '+3 este ciclo',
+            up: true,
+        },
+        {
+            label: 'Docentes Activos',
+            value: String(users.filter(u => u.rol === 'Docente' && u.activo).length),
+            icon: <UsersRound size={20} />,
+            iconBg: '#D6536D18',
+            change: 'Sin cambios',
+            up: null,
+        },
+        {
+            label: 'Materias en Curso',
+            value: String(materias.filter(m => m.cicloId === cicloActivo.id).length),
+            icon: <BookOpen size={20} />,
+            iconBg: '#E43D1218',
+            change: cicloActivo.nombre,
+            up: null,
+        },
+        {
+            label: 'Grupos Activos',
+            value: String(grupos.filter(g => g.cicloId === cicloActivo.id).length),
+            icon: <School size={20} />,
+            iconBg: '#EFB11D18',
+            change: `${grupos.reduce((a, g) => a + (g.alumnos?.length ?? 0), 0)} alumnos inscritos`,
+            up: true,
+        },
+    ]
 
     return (
         <AdminShell>
@@ -117,12 +145,12 @@ export default function DashboardAdminPage() {
                     {/* Distribución de usuarios */}
                     <div className="bg-white rounded-2xl p-5 shadow-sm">
                         <p className="text-sm font-bold text-[#3d3d3d] mb-4">Distribución de Usuarios</p>
-                        <RolBar rol="Alumnos" count={MOCK_USERS.filter(u => u.rol === 'Alumno').length} total={MOCK_USERS.length} color="#FFA2B6" />
-                        <RolBar rol="Docentes" count={MOCK_USERS.filter(u => u.rol === 'Docente').length} total={MOCK_USERS.length} color="#D6536D" />
-                        <RolBar rol="Admins" count={MOCK_USERS.filter(u => u.rol === 'Admin').length} total={MOCK_USERS.length} color="#E43D12" />
+                        <RolBar rol="Alumnos" count={users.filter(u => u.rol === 'Alumno').length} total={users.length} color="#FFA2B6" />
+                        <RolBar rol="Docentes" count={users.filter(u => u.rol === 'Docente').length} total={users.length} color="#D6536D" />
+                        <RolBar rol="Admins" count={users.filter(u => u.rol === 'Admin').length} total={users.length} color="#E43D12" />
                         <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-400">
                             <span>Total usuarios</span>
-                            <span className="font-bold text-[#3d3d3d]">{MOCK_USERS.length}</span>
+                            <span className="font-bold text-[#3d3d3d]">{users.length}</span>
                         </div>
                     </div>
 
@@ -144,7 +172,7 @@ export default function DashboardAdminPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {GRUPOS.filter(g => g.cicloId === cicloActivo.id).map(g => (
+                                {grupos.filter(g => g.cicloId === cicloActivo.id).map(g => (
                                     <tr key={g.id}>
                                         <td className="py-2.5 pr-4">
                                             <span className="font-bold text-[#3d3d3d]">{g.clave}</span>
@@ -153,7 +181,7 @@ export default function DashboardAdminPage() {
                                         <td className="py-2.5 pr-4 text-gray-500 hidden sm:table-cell">{g.docente}</td>
                                         <td className="py-2.5">
                                             <span className="text-xs font-bold" style={{ color: 'var(--color-primary)' }}>
-                                                {g.alumnos.length}/{g.capacidad}
+                                                {g.alumnos?.length ?? 0}/{g.capacidad}
                                             </span>
                                         </td>
                                     </tr>

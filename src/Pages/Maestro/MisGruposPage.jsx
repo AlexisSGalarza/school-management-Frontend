@@ -1,20 +1,64 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, UsersRound, X } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import Badge from '../../Components/UI/Badge'
+import { useAuth } from '../../Context/AuthContext'
+import { gruposService } from '../../Services/gruposService'
+import { inscripcionesService } from '../../Services/inscripcionesService'
+import { entregasService } from '../../Services/entregasService'
 
-const grupos = [
-    { id: 1, materia: 'Desarrollo Web', grupo: '101', alumnos: 28, pendientes: 18, color: '#E43D12' },
-    { id: 2, materia: 'Física II', grupo: '202', alumnos: 30, pendientes: 12, color: '#EFB11D' },
-    { id: 3, materia: 'Cálculo Diferencial', grupo: '301', alumnos: 25, pendientes: 0, color: '#D6536D' },
-    { id: 4, materia: 'Inglés Técnico', grupo: '102', alumnos: 29, pendientes: 15, color: '#FFA2B6' },
-]
+const COLORS = ['#E43D12', '#EFB11D', '#D6536D', '#FFA2B6', '#7c3aed', '#10b981', '#3b82f6']
 
 export default function MisGruposPage() {
     const navigate = useNavigate()
+    const { user } = useAuth()
+    const [grupos, setGrupos] = useState([])
+    const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [form, setForm] = useState({ materia: '', grupo: '' })
+
+    async function fetchGrupos() {
+        try {
+            const [gRes, iRes, eRes] = await Promise.all([
+                gruposService.getAll(),
+                inscripcionesService.getAll(),
+                entregasService.getAll(),
+            ])
+            const gruposList = Array.isArray(gRes) ? gRes : gRes.results ?? []
+            const inscList = Array.isArray(iRes) ? iRes : iRes.results ?? []
+            const entregasList = Array.isArray(eRes) ? eRes : eRes.results ?? []
+
+            const misGrupos = gruposList
+                .filter(g => g.docente === user?.id)
+                .map((g, i) => {
+                    const alumnos = inscList.filter(ins => ins.grupo === g.id).length
+                    const pendientes = entregasList.filter(e => e.grupo === g.id && e.calificacion == null).length
+                    return {
+                        id: g.id,
+                        materia: g.materia_nombre ?? g.nombre ?? '',
+                        grupo: g.clave ?? g.nombre ?? '',
+                        alumnos,
+                        pendientes,
+                        color: COLORS[i % COLORS.length],
+                    }
+                })
+            setGrupos(misGrupos)
+        } catch { /* ignore */ }
+        setLoading(false)
+    }
+
+    useEffect(() => { fetchGrupos() }, [user])
+
+    async function handleCreateGrupo() {
+        if (!form.materia || !form.grupo) return
+        try {
+            await gruposService.create({ nombre: form.materia, clave: form.grupo })
+            setShowModal(false)
+            setForm({ materia: '', grupo: '' })
+            fetchGrupos()
+        } catch { /* ignore */ }
+    }
 
     return (
         <TeacherShell>
@@ -137,7 +181,7 @@ export default function MisGruposPage() {
                                     className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
                                 >Cancelar</button>
                                 <button
-                                    onClick={() => setShowModal(false)}
+                                    onClick={handleCreateGrupo}
                                     className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
                                     style={{ backgroundColor: 'var(--color-primary)' }}
                                 >Crear Grupo</button>

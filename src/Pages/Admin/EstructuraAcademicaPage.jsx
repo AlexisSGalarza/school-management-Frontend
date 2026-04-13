@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Calendar, BookOpen, School, Plus, Trash2, Pencil, GraduationCap, AlertTriangle, Check, Search, Link2, X } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import Tabs from '../../Components/UI/Tabs'
@@ -6,13 +6,13 @@ import Badge from '../../Components/UI/Badge'
 import PageHeader from '../../Components/UI/PageHeader'
 import ModalBase from '../../Components/UI/ModalBase'
 import FormField from '../../Components/UI/FormField'
-import { CICLOS, MATERIAS, GRUPOS } from '../../data/mockAcademicStructure'
-import { MOCK_USERS } from '../../data/mockUsers'
+import { ciclosService } from '../../Services/ciclosService'
+import { materiasService } from '../../Services/materiasService'
+import { gruposService } from '../../Services/gruposService'
+import { usersService } from '../../Services/usersService'
+import { inscripcionesService } from '../../Services/inscripcionesService'
 import { useToast } from '../../Context/ToastContext'
 
-// ─── Estado local (simula mutación en memoria) ────────────────────────────────
-const DOCENTES = MOCK_USERS.filter(u => u.rol === 'Docente')
-const ALUMNOS = MOCK_USERS.filter(u => u.rol === 'Alumno')
 function genCodigo(clave) {
     const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
     return clave + '-' + Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
@@ -25,6 +25,33 @@ const TAB_LIST = [
 
 export default function EstructuraAcademicaPage() {
     const [tab, setTab] = useState('ciclos')
+    const [allUsers, setAllUsers] = useState([])
+    const [ciclos, setCiclos] = useState([])
+    const [materias, setMaterias] = useState([])
+    const [grupos, setGrupos] = useState([])
+
+    const DOCENTES = useMemo(() => allUsers.filter(u => u.rol === 'Docente'), [allUsers])
+    const ALUMNOS = useMemo(() => allUsers.filter(u => u.rol === 'Alumno'), [allUsers])
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const [u, c, m, g] = await Promise.all([
+                    usersService.getAll(),
+                    ciclosService.getAll(),
+                    materiasService.getAll(),
+                    gruposService.getAll(),
+                ])
+                setAllUsers(Array.isArray(u) ? u : u.results ?? [])
+                setCiclos(Array.isArray(c) ? c : c.results ?? [])
+                setMaterias(Array.isArray(m) ? m : m.results ?? [])
+                setGrupos(Array.isArray(g) ? g : g.results ?? [])
+            } catch (err) {
+                console.error('Error cargando estructura:', err)
+            }
+        }
+        load()
+    }, [])
 
     return (
         <AdminShell>
@@ -36,26 +63,30 @@ export default function EstructuraAcademicaPage() {
 
                 <Tabs tabs={TAB_LIST} active={tab} onChange={setTab} />
 
-                {tab === 'ciclos' && <TabCiclos />}
-                {tab === 'materias' && <TabMaterias />}
-                {tab === 'grupos' && <TabGrupos />}
+                {tab === 'ciclos' && <TabCiclos ciclos={ciclos} setCiclos={setCiclos} />}
+                {tab === 'materias' && <TabMaterias materias={materias} setMaterias={setMaterias} ciclos={ciclos} />}
+                {tab === 'grupos' && <TabGrupos grupos={grupos} setGrupos={setGrupos} materias={materias} ciclos={ciclos} DOCENTES={DOCENTES} ALUMNOS={ALUMNOS} />}
             </div>
         </AdminShell>
     )
 }
 
 // ─── TAB CICLOS ───────────────────────────────────────────────────────────────
-function TabCiclos() {
+function TabCiclos({ ciclos, setCiclos }) {
     const { addToast } = useToast()
-    const [ciclos, setCiclos] = useState(CICLOS)
     const [modal, setModal] = useState(false)
     const [form, setForm] = useState({ nombre: '', inicio: '', fin: '' })
     const [errors, setErrors] = useState({})
 
-    function toggleActivo(id) {
+    async function toggleActivo(id) {
         const c = ciclos.find(x => x.id === id)
-        setCiclos(prev => prev.map(x => ({ ...x, activo: x.id === id })))
-        addToast(`Ciclo "${c?.nombre}" activado`)
+        try {
+            await ciclosService.update(id, { activo: true })
+            setCiclos(prev => prev.map(x => ({ ...x, activo: x.id === id })))
+            addToast(`Ciclo "${c?.nombre}" activado`)
+        } catch (err) {
+            addToast('Error al activar ciclo', 'error')
+        }
     }
 
     function handleChange(e) {
@@ -64,7 +95,7 @@ function TabCiclos() {
         setErrors(prev => ({ ...prev, [name]: undefined }))
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault()
         const errs = {}
         if (!form.nombre.trim()) errs.nombre = 'El nombre del ciclo es requerido'
@@ -72,10 +103,15 @@ function TabCiclos() {
         if (!form.fin) errs.fin = 'Fecha de fin requerida'
         if (form.inicio && form.fin && form.inicio >= form.fin) errs.fin = 'La fecha fin debe ser posterior al inicio'
         if (Object.keys(errs).length) { setErrors(errs); return }
-        setCiclos(prev => [...prev, { id: prev.length + 1, ...form, activo: false }])
-        setModal(false)
-        setForm({ nombre: '', inicio: '', fin: '' })
-        addToast('Ciclo creado correctamente')
+        try {
+            const nuevo = await ciclosService.create({ ...form, activo: false })
+            setCiclos(prev => [...prev, nuevo])
+            setModal(false)
+            setForm({ nombre: '', inicio: '', fin: '' })
+            addToast('Ciclo creado correctamente')
+        } catch (err) {
+            addToast('Error al crear ciclo', 'error')
+        }
     }
 
     return (
@@ -167,11 +203,9 @@ function buildClave(nombre, materias) {
     return `${prefix}-${num}`
 }
 
-function TabMaterias() {
+function TabMaterias({ materias, setMaterias, ciclos }) {
     const { addToast } = useToast()
-    const [materias, setMaterias] = useState(MATERIAS)
-    const [ciclos] = useState(CICLOS)
-    const [cicloFiltro, setCicloFiltro] = useState(String(CICLOS.find(c => c.activo)?.id ?? ''))
+    const [cicloFiltro, setCicloFiltro] = useState(String(ciclos.find(c => c.activo)?.id ?? ''))
     const [modal, setModal] = useState(false)
     const [deleteId, setDeleteId] = useState(null)
     const [form, setForm] = useState({ clave: '', nombre: '', creditos: '6', cicloId: '' })
@@ -201,31 +235,40 @@ function TabMaterias() {
         handleChange(e)
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault()
         const errs = {}
         if (!form.clave.trim()) errs.clave = 'La clave es requerida'
         if (!form.nombre.trim()) errs.nombre = 'El nombre es requerido'
         if (!form.cicloId) errs.cicloId = 'Selecciona un ciclo'
         if (Object.keys(errs).length) { setErrors(errs); return }
-        setMaterias(prev => [...prev, {
-            id: prev.length + 1,
-            clave: form.clave.trim().toUpperCase(),
-            nombre: form.nombre.trim(),
-            creditos: parseInt(form.creditos, 10),
-            cicloId: parseInt(form.cicloId, 10),
-        }])
-        setModal(false)
-        setForm({ clave: '', nombre: '', creditos: '6', cicloId: '' })
-        setClaveManual(false)
-        addToast('Materia creada correctamente')
+        try {
+            const nueva = await materiasService.create({
+                clave: form.clave.trim().toUpperCase(),
+                nombre: form.nombre.trim(),
+                creditos: parseInt(form.creditos, 10),
+                cicloId: parseInt(form.cicloId, 10),
+            })
+            setMaterias(prev => [...prev, nueva])
+            setModal(false)
+            setForm({ clave: '', nombre: '', creditos: '6', cicloId: '' })
+            setClaveManual(false)
+            addToast('Materia creada correctamente')
+        } catch (err) {
+            addToast('Error al crear materia', 'error')
+        }
     }
 
-    function handleDelete() {
+    async function handleDelete() {
         const m = materias.find(x => x.id === deleteId)
-        setMaterias(prev => prev.filter(x => x.id !== deleteId))
-        setDeleteId(null)
-        addToast(`Materia "${m?.nombre}" eliminada`, 'warning')
+        try {
+            await materiasService.remove(deleteId)
+            setMaterias(prev => prev.filter(x => x.id !== deleteId))
+            setDeleteId(null)
+            addToast(`Materia "${m?.nombre}" eliminada`, 'warning')
+        } catch (err) {
+            addToast('Error al eliminar materia', 'error')
+        }
     }
 
     return (
@@ -338,15 +381,11 @@ function TabMaterias() {
 }
 
 // ─── TAB GRUPOS Y ASIGNACIONES ────────────────────────────────────────────────
-function TabGrupos() {
+function TabGrupos({ grupos, setGrupos, materias, ciclos, DOCENTES, ALUMNOS }) {
     const { addToast } = useToast()
-    const [grupos, setGrupos] = useState(GRUPOS)
-    const [materias] = useState(MATERIAS)
-    const [ciclos] = useState(CICLOS)
     const [modal, setModal] = useState(false)
     const [deleteGrupoId, setDeleteGrupoId] = useState(null)
-    // Smart enrollment state
-    const [enrollModal, setEnrollModal] = useState(null)   // grupoId
+    const [enrollModal, setEnrollModal] = useState(null)
     const [enrollSearch, setEnrollSearch] = useState('')
     const [enrollSelected, setEnrollSelected] = useState(new Set())
     const [enrollTab, setEnrollTab] = useState('buscar')
@@ -362,16 +401,16 @@ function TabGrupos() {
     const eligibleAlumnos = useMemo(() => {
         if (!enrollGrupo) return []
         return ALUMNOS.filter(a => {
-            if (enrollGrupo.alumnos.includes(a.id)) return false
+            if ((enrollGrupo.alumnos ?? []).includes(a.id)) return false
             const conflicto = grupos.some(g =>
                 g.id !== enrollGrupo.id &&
                 g.materiaId === enrollGrupo.materiaId &&
                 g.cicloId === enrollGrupo.cicloId &&
-                g.alumnos.includes(a.id)
+                (g.alumnos ?? []).includes(a.id)
             )
             return !conflicto
         })
-    }, [enrollGrupo, grupos])
+    }, [enrollGrupo, grupos, ALUMNOS])
 
     const filteredEligible = eligibleAlumnos.filter(a =>
         a.nombre.toLowerCase().includes(enrollSearch.toLowerCase()) ||
@@ -394,14 +433,21 @@ function TabGrupos() {
         })
     }
 
-    function handleInscribir() {
+    async function handleInscribir() {
         const ids = [...enrollSelected]
-        setGrupos(prev => prev.map(g =>
-            g.id === enrollModal ? { ...g, alumnos: [...g.alumnos, ...ids] } : g
-        ))
-        const n = ids.length
-        addToast(`${n} alumno${n !== 1 ? 's' : ''} inscrito${n !== 1 ? 's' : ''} en ${enrollGrupo?.clave}`)
-        setEnrollModal(null)
+        try {
+            await Promise.all(ids.map(alumnoId =>
+                inscripcionesService.create({ alumnoId, grupoId: enrollModal, materiaId: enrollGrupo?.materiaId, cicloId: enrollGrupo?.cicloId })
+            ))
+            setGrupos(prev => prev.map(g =>
+                g.id === enrollModal ? { ...g, alumnos: [...(g.alumnos ?? []), ...ids] } : g
+            ))
+            const n = ids.length
+            addToast(`${n} alumno${n !== 1 ? 's' : ''} inscrito${n !== 1 ? 's' : ''} en ${enrollGrupo?.clave}`)
+            setEnrollModal(null)
+        } catch (err) {
+            addToast('Error al inscribir alumnos', 'error')
+        }
     }
 
     async function handleCopy(text, key) {
@@ -416,7 +462,7 @@ function TabGrupos() {
         setErrors(prev => ({ ...prev, [name]: undefined }))
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault()
         const errs = {}
         if (!form.clave.trim()) errs.clave = 'Clave requerida'
@@ -427,28 +473,37 @@ function TabGrupos() {
         const materia = materias.find(m => m.id === parseInt(form.materiaId, 10))
         const docente = DOCENTES.find(d => d.id === parseInt(form.docenteId, 10))
         const clave = form.clave.trim().toUpperCase()
-        setGrupos(prev => [...prev, {
-            id: prev.length + 1,
-            clave,
-            codigo: genCodigo(clave),
-            materiaId: parseInt(form.materiaId, 10),
-            materia: materia?.nombre ?? '—',
-            docenteId: parseInt(form.docenteId, 10),
-            docente: docente?.nombre ?? '—',
-            cicloId: parseInt(form.cicloId, 10),
-            alumnos: [],
-            capacidad: parseInt(form.capacidad, 10),
-        }])
-        setModal(false)
-        setForm({ clave: '', materiaId: '', docenteId: '', cicloId: '', capacidad: '25' })
-        addToast(`Grupo ${clave} creado`)
+        try {
+            const nuevo = await gruposService.create({
+                clave,
+                codigo: genCodigo(clave),
+                materiaId: parseInt(form.materiaId, 10),
+                materia: materia?.nombre ?? '—',
+                docenteId: parseInt(form.docenteId, 10),
+                docente: docente?.nombre ?? '—',
+                cicloId: parseInt(form.cicloId, 10),
+                alumnos: [],
+                capacidad: parseInt(form.capacidad, 10),
+            })
+            setGrupos(prev => [...prev, nuevo])
+            setModal(false)
+            setForm({ clave: '', materiaId: '', docenteId: '', cicloId: '', capacidad: '25' })
+            addToast(`Grupo ${clave} creado`)
+        } catch (err) {
+            addToast('Error al crear grupo', 'error')
+        }
     }
 
-    function handleDeleteGrupo() {
+    async function handleDeleteGrupo() {
         const g = grupos.find(x => x.id === deleteGrupoId)
-        setGrupos(prev => prev.filter(x => x.id !== deleteGrupoId))
-        setDeleteGrupoId(null)
-        addToast(`Grupo "${g?.clave}" eliminado`, 'warning')
+        try {
+            await gruposService.remove(deleteGrupoId)
+            setGrupos(prev => prev.filter(x => x.id !== deleteGrupoId))
+            setDeleteGrupoId(null)
+            addToast(`Grupo "${g?.clave}" eliminado`, 'warning')
+        } catch (err) {
+            addToast('Error al eliminar grupo', 'error')
+        }
     }
 
     return (
@@ -463,7 +518,7 @@ function TabGrupos() {
 
             <div className="space-y-3">
                 {grupos.map(g => {
-                    const pct = Math.round((g.alumnos.length / g.capacidad) * 100)
+                    const pct = Math.round(((g.alumnos?.length ?? 0) / g.capacidad) * 100)
                     return (
                         <div key={g.id} className="bg-white rounded-2xl p-5 shadow-sm">
                             <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -491,8 +546,8 @@ function TabGrupos() {
                             {/* Barra de capacidad */}
                             <div className="mt-3">
                                 <div className="flex justify-between text-xs text-gray-400 mb-1">
-                                    <span>{g.alumnos.length} alumnos</span>
-                                    <span>{g.alumnos.length}/{g.capacidad}</span>
+                                    <span>{g.alumnos?.length ?? 0} alumnos</span>
+                                    <span>{g.alumnos?.length ?? 0}/{g.capacidad}</span>
                                 </div>
                                 <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
                                     <div

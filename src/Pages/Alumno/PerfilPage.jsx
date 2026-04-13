@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Mail, GraduationCap, School, Calendar, Lock, CheckCircle, X } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
@@ -6,27 +6,47 @@ import Avatar from '../../Components/UI/Avatar'
 import Badge from '../../Components/UI/Badge'
 import Card from '../../Components/UI/Card'
 import Button from '../../Components/UI/Button'
-
-// ── Mock data ────────────────────────────────────────────────
-const USER = {
-    nombre: 'Alexis Galarza',
-    email: 'alexis.galarza@escuela.edu.mx',
-    matricula: '20230001',
-    rol: 'Alumno',
-    ciclo: 'Enero – Junio 2026',
-    createdAt: '2023-08-15',
-    activo: true,
-}
-
-const resumenAcademico = [
-    { label: 'Materias inscritas', value: 6 },
-    { label: 'Tareas entregadas', value: 14 },
-    { label: 'Tareas pendientes', value: 3 },
-]
-// ─────────────────────────────────────────────────────────────
+import { useAuth } from '../../Context/AuthContext'
+import { gruposService } from '../../Services/gruposService'
+import { tareasService } from '../../Services/tareasService'
+import { entregasService } from '../../Services/entregasService'
 
 export default function PerfilPage() {
+    const { user } = useAuth()
+    const [resumenAcademico, setResumenAcademico] = useState([])
     const [editingPassword, setEditingPassword] = useState(false)
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const [grupos, tareas, entregas] = await Promise.all([
+                    gruposService.getAll(),
+                    tareasService.getAll(),
+                    entregasService.getAll(),
+                ])
+                const gruposList = Array.isArray(grupos) ? grupos : grupos.results ?? []
+                const tareasList = Array.isArray(tareas) ? tareas : tareas.results ?? []
+                const entregasList = Array.isArray(entregas) ? entregas : entregas.results ?? []
+                const misEntregas = entregasList.filter(e => e.alumno === user?.id)
+                const tareasEntregadas = new Set(misEntregas.map(e => e.tarea))
+                const pendientes = tareasList.filter(t => !tareasEntregadas.has(t.id))
+                setResumenAcademico([
+                    { label: 'Materias inscritas', value: gruposList.length },
+                    { label: 'Tareas entregadas', value: tareasEntregadas.size },
+                    { label: 'Tareas pendientes', value: pendientes.length },
+                ])
+            } catch { /* ignore */ }
+        }
+        load()
+    }, [user])
+
+    const nombre = user?.nombre ?? user?.first_name ?? ''
+    const email = user?.email ?? ''
+    const matricula = user?.matricula ?? user?.username ?? ''
+    const rol = user?.rol ?? 'Alumno'
+    const ciclo = user?.ciclo ?? ''
+    const createdAt = user?.date_joined ?? user?.createdAt ?? ''
+    const activo = user?.is_active ?? user?.activo ?? true
     const [pwForm, setPwForm] = useState({ actual: '', nueva: '', confirmar: '' })
     const [pwErrors, setPwErrors] = useState({})
     const [pwSuccess, setPwSuccess] = useState(false)
@@ -70,24 +90,24 @@ export default function PerfilPage() {
                     {/* Tarjeta de identidad */}
                     <Card className="text-center">
                         <div className="flex justify-center mb-4">
-                            <Avatar name={USER.nombre} size="xl" />
+                            <Avatar name={nombre} size="xl" />
                         </div>
 
                         <div className="flex items-center justify-center gap-2 flex-wrap">
-                            <h1 className="text-xl font-bold text-[#3d3d3d]">{USER.nombre}</h1>
-                            {USER.activo && <Badge variant="secondary">Cuenta Activa</Badge>}
+                            <h1 className="text-xl font-bold text-[#3d3d3d]">{nombre}</h1>
+                            {activo && <Badge variant="secondary">Cuenta Activa</Badge>}
                         </div>
-                        <p className="text-sm text-gray-400 mt-1">{USER.rol} · {USER.ciclo}</p>
+                        <p className="text-sm text-gray-400 mt-1">{rol} · {ciclo}</p>
 
                         <hr className="border-gray-100 my-5" />
 
                         {/* Info rows */}
                         <div className="space-y-3 text-left">
                             {[
-                                { icon: <Mail size={16} />, label: 'Correo electrónico', value: USER.email },
-                                { icon: <GraduationCap size={16} />, label: 'Matrícula', value: USER.matricula },
-                                { icon: <School size={16} />, label: 'Ciclo activo', value: USER.ciclo },
-                                { icon: <Calendar size={16} />, label: 'Fecha de registro', value: new Date(USER.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) },
+                                { icon: <Mail size={16} />, label: 'Correo electrónico', value: email },
+                                { icon: <GraduationCap size={16} />, label: 'Matrícula', value: matricula },
+                                { icon: <School size={16} />, label: 'Ciclo activo', value: ciclo || '—' },
+                                { icon: <Calendar size={16} />, label: 'Fecha de registro', value: createdAt ? new Date(createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—' },
                             ].map(row => (
                                 <div key={row.label} className="flex items-center gap-3 px-2">
                                     <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ background: '#FFA2B618' }}>

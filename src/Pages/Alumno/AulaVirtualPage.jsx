@@ -1,78 +1,88 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { MessageSquare, ClipboardList, FolderOpen, UserCheck, CheckCircle, Zap, FileText, Presentation, FileIcon, FileSpreadsheet, Link2, Archive, Download, ExternalLink } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Tabs from '../../Components/UI/Tabs'
 import Avatar from '../../Components/UI/Avatar'
 import Badge from '../../Components/UI/Badge'
 import Button from '../../Components/UI/Button'
-
-// ── Mock data ────────────────────────────────────────────────
-const MATERIA = {
-    id: 1,
-    nombre: 'Desarrollo Web',
-    clave: 'DW-301',
-    docente: 'Dr. Martínez',
-    grupo: 'Grupo A',
-    color: '#E43D12',
-    alumnos: 28,
-}
-
-const publicaciones = [
-    {
-        id: 1,
-        titulo: 'Cambio de horario – próxima clase',
-        contenido: 'Les aviso que la clase del miércoles se movió a las 11:00 AM en el aula 204. Favor de tomar nota y confirmar asistencia.',
-        autor: 'Dr. Martínez',
-        fecha: '28 Mar 2026 · 10:45',
-        comentarios: [
-            { id: 1, autor: 'Alexis Galarza', texto: 'Anotado, gracias profe.', fecha: '11:02' },
-            { id: 2, autor: 'María García', texto: '¡Recibido!', fecha: '11:10' },
-        ]
-    },
-    {
-        id: 2,
-        titulo: 'Material de apoyo – Parcial 2',
-        contenido: 'Subo el PDF con los temas del segundo parcial. Recuerden repasar los hooks de React y el manejo de rutas con React Router.',
-        autor: 'Dr. Martínez',
-        fecha: '26 Mar 2026 · 09:00',
-        comentarios: []
-    },
-]
-
-const tareas = [
-    { id: 1, titulo: 'Proyecto final React', fechaLimite: '2026-03-28', entregada: false },
-    { id: 2, titulo: 'Ejercicio de rutas dinámicas', fechaLimite: '2026-04-05', entregada: true },
-]
-
-const materiales = [
-    { id: 1, tipo: 'pdf', nombre: 'Guía de estudio – Parcial 2.pdf', descripcion: 'Temas: hooks, context API, React Router v7', fecha: '26 Mar 2026', tamaño: '2.4 MB' },
-    { id: 2, tipo: 'link', nombre: 'Documentación oficial React 19', url: 'https://react.dev', descripcion: 'Referencia para el proyecto final', fecha: '20 Mar 2026' },
-    { id: 3, tipo: 'pdf', nombre: 'Rúbrica Proyecto Final.pdf', descripcion: 'Criterios de evaluación y puntaje detallado', fecha: '15 Mar 2026', tamaño: '890 KB' },
-    { id: 4, tipo: 'pptx', nombre: 'Presentación Clase 8 – React Router.pptx', descripcion: '', fecha: '12 Mar 2026', tamaño: '5.1 MB' },
-]
+import { gruposService } from '../../Services/gruposService'
+import { publicacionesService } from '../../Services/publicacionesService'
+import { comentariosService } from '../../Services/comentariosService'
+import { tareasService } from '../../Services/tareasService'
+import { materialesService } from '../../Services/materialesService'
+import { useAuth } from '../../Context/AuthContext'
 
 const TABS = [
     { key: 'canal', label: 'Canal' },
     { key: 'tareas', label: 'Tareas' },
     { key: 'materiales', label: 'Materiales' },
 ]
-// ─────────────────────────────────────────────────────────────
 
 export default function AulaVirtualPage() {
+    const { id } = useParams()
     const [tab, setTab] = useState('canal')
-    const [comentarios, setComentarios] = useState(
-        Object.fromEntries(publicaciones.map(p => [p.id, p.comentarios]))
-    )
+    const [grupo, setGrupo] = useState(null)
+    const [publicacionesList, setPublicacionesList] = useState([])
+    const [comentariosMap, setComentariosMap] = useState({})
+    const [tareasList, setTareasList] = useState([])
+    const [materialesList, setMaterialesList] = useState([])
     const [inputs, setInputs] = useState({})
+    const [loading, setLoading] = useState(true)
     const navigate = useNavigate()
+    const { user } = useAuth()
 
-    function handleComment(pubId) {
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const [grupoData, pubsData, tareasData, matsData, comsData] = await Promise.all([
+                    gruposService.getById(id),
+                    publicacionesService.getAll(),
+                    tareasService.getAll(),
+                    materialesService.getAll(),
+                    comentariosService.getAll(),
+                ])
+                setGrupo(grupoData)
+
+                const pubs = (Array.isArray(pubsData) ? pubsData : pubsData.results ?? []).filter(p => String(p.grupo) === String(id))
+                setPublicacionesList(pubs)
+
+                const coms = Array.isArray(comsData) ? comsData : comsData.results ?? []
+                const comsMap = {}
+                pubs.forEach(p => { comsMap[p.id] = coms.filter(c => String(c.publicacion) === String(p.id)) })
+                setComentariosMap(comsMap)
+
+                const tars = (Array.isArray(tareasData) ? tareasData : tareasData.results ?? []).filter(t => String(t.grupo) === String(id))
+                setTareasList(tars)
+
+                const mats = (Array.isArray(matsData) ? matsData : matsData.results ?? []).filter(m => String(m.grupo) === String(id))
+                setMaterialesList(mats)
+            } catch (err) {
+                console.error('Error cargando aula virtual:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [id])
+
+    async function handleComment(pubId) {
         const texto = (inputs[pubId] || '').trim()
         if (!texto) return
-        const nuevo = { id: Date.now(), autor: 'Alexis Galarza', texto, fecha: 'Ahora mismo' }
-        setComentarios(prev => ({ ...prev, [pubId]: [...(prev[pubId] || []), nuevo] }))
-        setInputs(prev => ({ ...prev, [pubId]: '' }))
+        try {
+            const nuevo = await comentariosService.create({ publicacion: pubId, texto })
+            setComentariosMap(prev => ({ ...prev, [pubId]: [...(prev[pubId] || []), nuevo] }))
+            setInputs(prev => ({ ...prev, [pubId]: '' }))
+        } catch (err) {
+            console.error('Error enviando comentario:', err)
+        }
+    }
+
+    const color = '#E43D12'
+    const nombre = user?.nombre ?? user?.first_name ?? 'Alumno'
+
+    if (loading) {
+        return <AppShell><div className="flex items-center justify-center h-64"><p className="text-gray-400 text-sm">Cargando…</p></div></AppShell>
     }
 
     return (
@@ -82,13 +92,13 @@ export default function AulaVirtualPage() {
                 {/* Header de materia */}
                 <div
                     className="rounded-2xl p-6 text-white"
-                    style={{ background: `linear-gradient(135deg, ${MATERIA.color} 0%, #D6536D 100%)` }}
+                    style={{ background: `linear-gradient(135deg, ${color} 0%, #D6536D 100%)` }}
                 >
                     <div className="flex items-start justify-between">
                         <div>
-                            <p className="text-white/70 text-xs mb-1">{MATERIA.clave} · {MATERIA.grupo}</p>
-                            <h1 className="text-2xl font-bold">{MATERIA.nombre}</h1>
-                            <p className="text-white/80 text-sm mt-1"><UserCheck size={14} className="inline" /> {MATERIA.docente} · {MATERIA.alumnos} alumnos</p>
+                            <p className="text-white/70 text-xs mb-1">{grupo?.clave ?? '—'}</p>
+                            <h1 className="text-2xl font-bold">{grupo?.materia ?? '—'}</h1>
+                            <p className="text-white/80 text-sm mt-1"><UserCheck size={14} className="inline" /> {grupo?.docente ?? '—'} · {grupo?.alumnos?.length ?? 0} alumnos</p>
                         </div>
                         <button
                             onClick={() => navigate('/alumno/materias')}
@@ -108,18 +118,19 @@ export default function AulaVirtualPage() {
                     <div className="p-5">
                         {tab === 'canal' && (
                             <CanalTab
-                                publicaciones={publicaciones}
-                                comentarios={comentarios}
+                                publicaciones={publicacionesList}
+                                comentarios={comentariosMap}
                                 inputs={inputs}
                                 setInputs={setInputs}
                                 onComment={handleComment}
+                                userName={nombre}
                             />
                         )}
                         {tab === 'tareas' && (
-                            <TareasTab tareas={tareas} navigate={navigate} />
+                            <TareasTab tareas={tareasList} navigate={navigate} />
                         )}
                         {tab === 'materiales' && (
-                            <MaterialesTab materiales={materiales} />
+                            <MaterialesTab materiales={materialesList} />
                         )}
                     </div>
                 </div>
@@ -128,19 +139,19 @@ export default function AulaVirtualPage() {
     )
 }
 
-function CanalTab({ publicaciones, comentarios, inputs, setInputs, onComment }) {
+function CanalTab({ publicaciones, comentarios, inputs, setInputs, onComment, userName }) {
     return (
         <div className="space-y-6">
             {publicaciones.map(pub => (
                 <div key={pub.id} className="space-y-3">
                     {/* Publicación */}
                     <div className="flex gap-3">
-                        <Avatar name="Dr. Martínez" size="md" />
+                        <Avatar name={pub.autor_nombre ?? pub.autor ?? '—'} size="md" />
                         <div className="flex-1">
                             <div className="bg-[#EBE9E1] rounded-2xl rounded-tl-none p-4">
-                                <p className="text-xs font-bold" style={{ color: 'var(--color-secondary)' }}>Dr. Martínez · {pub.fecha}</p>
+                                <p className="text-xs font-bold" style={{ color: 'var(--color-secondary)' }}>{pub.autor_nombre ?? pub.autor ?? '—'} · {pub.fecha ?? pub.created_at ?? ''}</p>
                                 <p className="text-sm font-semibold text-[#3d3d3d] mt-0.5">{pub.titulo}</p>
-                                <p className="text-sm text-gray-600 mt-2 leading-relaxed">{pub.contenido}</p>
+                                <p className="text-sm text-gray-600 mt-2 leading-relaxed">{pub.contenido ?? pub.texto}</p>
                             </div>
                         </div>
                     </div>
@@ -152,7 +163,7 @@ function CanalTab({ publicaciones, comentarios, inputs, setInputs, onComment }) 
                                 <div key={c.id} className="flex gap-2">
                                     <Avatar name={c.autor} size="sm" />
                                     <div className="bg-gray-50 rounded-2xl rounded-tl-none px-3 py-2 flex-1">
-                                        <p className="text-xs font-semibold text-gray-500">{c.autor} · {c.fecha}</p>
+                                        <p className="text-xs font-semibold text-gray-500">{c.autor_nombre ?? c.autor ?? '—'} · {c.fecha ?? c.created_at ?? ''}</p>
                                         <p className="text-sm text-[#3d3d3d] mt-0.5">{c.texto}</p>
                                     </div>
                                 </div>
@@ -162,7 +173,7 @@ function CanalTab({ publicaciones, comentarios, inputs, setInputs, onComment }) 
 
                     {/* Input de comentario */}
                     <div className="pl-10 flex gap-2">
-                        <Avatar name="Alexis Galarza" size="sm" />
+                        <Avatar name={userName} size="sm" />
                         <div className="flex-1 flex gap-2">
                             <input
                                 type="text"
@@ -187,7 +198,8 @@ function TareasTab({ tareas, navigate }) {
     return (
         <div className="space-y-3">
             {tareas.map(tarea => {
-                const urgent = (new Date(tarea.fechaLimite) - new Date()) / (1000 * 60 * 60) <= 48
+                const fechaLimite = tarea.fechaLimite ?? tarea.fecha_limite
+                const urgent = fechaLimite ? (new Date(fechaLimite) - new Date()) / (1000 * 60 * 60) <= 48 : false
                 return (
                     <div
                         key={tarea.id}
@@ -198,7 +210,7 @@ function TareasTab({ tareas, navigate }) {
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-[#3d3d3d]">{tarea.titulo}</p>
                             <p className={`text-xs mt-0.5 font-medium ${urgent && !tarea.entregada ? 'text-[#EFB11D]' : 'text-gray-400'}`}>
-                                Límite: {new Date(tarea.fechaLimite).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}
+                                Límite: {fechaLimite ? new Date(fechaLimite).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '—'}
                             </p>
                         </div>
                         {tarea.entregada

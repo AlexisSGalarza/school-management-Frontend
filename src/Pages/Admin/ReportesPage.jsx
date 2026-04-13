@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { User, Users, BookOpen, AlertTriangle, ClipboardList, BarChart3, FileText, FileSpreadsheet, FileIcon, CheckCircle, Clock, Download } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import PageHeader from '../../Components/UI/PageHeader'
 import FormField from '../../Components/UI/FormField'
 import { useTasks } from '../../Context/TasksContext'
-import { CICLOS, GRUPOS, MATERIAS } from '../../data/mockAcademicStructure'
-import { MOCK_USERS } from '../../data/mockUsers'
+import { ciclosService } from '../../Services/ciclosService'
+import { gruposService } from '../../Services/gruposService'
+import { materiasService } from '../../Services/materiasService'
+import { usersService } from '../../Services/usersService'
 
 const TIPOS = [
     { value: 'promedio_alumno', label: 'Promedio por Alumno', icon: User },
@@ -34,16 +36,40 @@ function tiempoDesde(date) {
 export default function ReportesPage() {
     const { tasks, addTask, removeTask, clearDone } = useTasks()
     const [filters, setFilters] = useState(INIT_FILTERS)
+    const [allUsers, setAllUsers] = useState([])
+    const [ciclos, setCiclos] = useState([])
+    const [grupos, setGrupos] = useState([])
+    const [materias, setMaterias] = useState([])
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const [u, c, g, m] = await Promise.all([
+                    usersService.getAll(),
+                    ciclosService.getAll(),
+                    gruposService.getAll(),
+                    materiasService.getAll(),
+                ])
+                setAllUsers(Array.isArray(u) ? u : u.results ?? [])
+                setCiclos(Array.isArray(c) ? c : c.results ?? [])
+                setGrupos(Array.isArray(g) ? g : g.results ?? [])
+                setMaterias(Array.isArray(m) ? m : m.results ?? [])
+            } catch (err) {
+                console.error('Error cargando datos de reportes:', err)
+            }
+        }
+        load()
+    }, [])
 
     const alumnosOptions = useMemo(() => [
         { value: '', label: 'Todos los alumnos' },
-        ...MOCK_USERS.filter(u => u.rol === 'Alumno').map(u => ({ value: String(u.id), label: `${u.nombre} (${u.matricula})` }))
-    ], [])
+        ...allUsers.filter(u => u.rol === 'Alumno').map(u => ({ value: String(u.id), label: `${u.nombre} (${u.matricula})` }))
+    ], [allUsers])
 
     const materiasOptions = useMemo(() => [
         { value: '', label: 'Todas las materias' },
-        ...MATERIAS.map(m => ({ value: String(m.id), label: `${m.clave} – ${m.nombre}` }))
-    ], [])
+        ...materias.map(m => ({ value: String(m.id), label: `${m.clave} – ${m.nombre}` }))
+    ], [materias])
 
     const showAlumno = filters.tipo === 'promedio_alumno'
     const showMateria = filters.tipo === 'promedio_materia'
@@ -56,11 +82,11 @@ export default function ReportesPage() {
 
     function handleGenerar() {
         const tipoLabel = TIPOS.find(t => t.value === filters.tipo)?.label ?? filters.tipo
-        const cicloLabel = CICLOS.find(c => String(c.id) === filters.cicloId)?.nombre ?? 'Todos los ciclos'
+        const cicloLabel = ciclos.find(c => String(c.id) === filters.cicloId)?.nombre ?? 'Todos los ciclos'
         const fmtLabel = FORMATOS.find(f => f.value === filters.formato)?.label ?? filters.formato
-        const alumnoLabel = MOCK_USERS.find(u => String(u.id) === filters.alumnoId)?.nombre ?? 'Todos'
-        const materiaLabel = MATERIAS.find(m => String(m.id) === filters.materiaId)?.nombre ?? 'Todas'
-        const grupoLabel = GRUPOS.find(g => String(g.id) === filters.grupoId)?.clave ?? 'Todos'
+        const alumnoLabel = allUsers.find(u => String(u.id) === filters.alumnoId)?.nombre ?? 'Todos'
+        const materiaLabel = materias.find(m => String(m.id) === filters.materiaId)?.nombre ?? 'Todas'
+        const grupoLabel = grupos.find(g => String(g.id) === filters.grupoId)?.clave ?? 'Todos'
 
         addTask({
             titulo: tipoLabel,
@@ -105,7 +131,7 @@ export default function ReportesPage() {
                                 value={filters.cicloId}
                                 onChange={handleChange}
                                 type="select"
-                                options={[{ value: '', label: 'Todos los ciclos' }, ...CICLOS.map(c => ({ value: String(c.id), label: c.nombre + (c.activo ? ' ✓' : '') }))]}
+                                options={[{ value: '', label: 'Todos los ciclos' }, ...ciclos.map(c => ({ value: String(c.id), label: c.nombre + (c.activo ? ' ✓' : '') }))]}
                             />
                             {showAlumno && (
                                 <FormField
@@ -134,7 +160,7 @@ export default function ReportesPage() {
                                     value={filters.grupoId}
                                     onChange={handleChange}
                                     type="select"
-                                    options={[{ value: '', label: 'Todos los grupos' }, ...GRUPOS.map(g => ({ value: String(g.id), label: `${g.clave} – ${g.materia}` }))]}
+                                    options={[{ value: '', label: 'Todos los grupos' }, ...grupos.map(g => ({ value: String(g.id), label: `${g.clave} – ${g.materia}` }))]}
                                 />
                             )}
                             <FormField

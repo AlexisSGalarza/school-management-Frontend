@@ -1,31 +1,18 @@
-import { useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { UserCheck, MessageSquare, Upload, Paperclip, AlertTriangle, Link2, CheckCircle, FolderOpen, X } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Badge from '../../Components/UI/Badge'
 import Button from '../../Components/UI/Button'
 import Card from '../../Components/UI/Card'
-
-// ── Mock data ────────────────────────────────────────────────
-const TAREA = {
-    id: 1,
-    titulo: 'Proyecto final React',
-    materia: 'Desarrollo Web',
-    docente: 'Dr. Martínez',
-    descripcion: 'Desarrolla una aplicación React completa que consuma al menos una API externa. La aplicación debe tener rutas dinámicas con React Router, manejo de estado global y diseño responsivo.',
-    fechaLimite: '2026-03-28T23:59:00',
-    grupo: 'Grupo A',
-}
+import { tareasService } from '../../Services/tareasService'
+import { entregasService } from '../../Services/entregasService'
+import { uploadService } from '../../Services/uploadService'
+import { useAuth } from '../../Context/AuthContext'
 
 const ALLOWED_TYPES = ['PDF', 'DOCX', 'PPTX', 'XLSX', 'JPG', 'PNG', 'ZIP', 'RAR']
 const BLOCKED_TYPES = ['MP4', 'AVI', 'MOV', 'MKV', 'WMV']
 const MAX_MB = 30
-
-const MI_HISTORIAL = [
-    { id: 3, intento: 3, fecha: '28 Mar 2026 · 14:32', tipo: 'archivo', nombre: 'proyecto_final_v3.zip', tamaño: '4.2 MB', calificacion: null, comentario: '', estado: 'pendiente' },
-    { id: 2, intento: 2, fecha: '27 Mar 2026 · 10:15', tipo: 'archivo', nombre: 'proyecto_final_v2.zip', tamaño: '3.8 MB', calificacion: 8.5, comentario: 'Buen avance, falta validación de formularios y manejo de errores en las peticiones a la API.', estado: 'calificado' },
-]
-// ─────────────────────────────────────────────────────────────
 
 function isUrgent(fecha) {
     const diff = (new Date(fecha) - new Date()) / (1000 * 60 * 60)
@@ -33,8 +20,13 @@ function isUrgent(fecha) {
 }
 
 export default function DetalleTareaPage() {
+    const { id } = useParams()
     const navigate = useNavigate()
+    const { user } = useAuth()
     const fileInputRef = useRef(null)
+    const [tarea, setTarea] = useState(null)
+    const [historial, setHistorial] = useState([])
+    const [loading, setLoading] = useState(true)
     const [selectedFile, setSelectedFile] = useState(null)
     const [fileError, setFileError] = useState('')
     const [videoLink, setVideoLink] = useState('')
@@ -42,7 +34,27 @@ export default function DetalleTareaPage() {
     const [uploadSuccess, setUploadSuccess] = useState(false)
     const [historialOpen, setHistorialOpen] = useState(false)
 
-    const urgent = isUrgent(TAREA.fechaLimite)
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const [tareaData, entregasData] = await Promise.all([
+                    tareasService.getById(id),
+                    entregasService.getAll(),
+                ])
+                setTarea(tareaData)
+                const entregas = Array.isArray(entregasData) ? entregasData : entregasData.results ?? []
+                setHistorial(entregas.filter(e => String(e.tarea) === String(id) && e.alumno === user?.id))
+            } catch (err) {
+                console.error('Error cargando tarea:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [id, user])
+
+    const fechaLimite = tarea?.fechaLimite ?? tarea?.fecha_limite
+    const urgent = fechaLimite ? isUrgent(fechaLimite) : false
 
     function validateFile(file) {
         if (!file) return ''
@@ -69,15 +81,41 @@ export default function DetalleTareaPage() {
         setFileError('')
     }
 
-    function handleUpload() {
+    async function handleUpload() {
         if (!selectedFile && !videoLink.trim()) return
         setUploading(true)
-        setTimeout(() => {
-            setUploading(false)
+        try {
+            let archivoUrl
+            if (selectedFile) {
+                const uploadRes = await uploadService.upload(selectedFile)
+                archivoUrl = uploadRes.url ?? uploadRes.archivo
+            }
+            await entregasService.create({
+                tarea: id,
+                archivo: archivoUrl,
+                enlace: videoLink.trim() || undefined,
+            })
             setUploadSuccess(true)
             setSelectedFile(null)
             setVideoLink('')
-        }, 1500)
+            // Refresh historial
+            const entregasData = await entregasService.getAll()
+            const entregas = Array.isArray(entregasData) ? entregasData : entregasData.results ?? []
+            setHistorial(entregas.filter(e => String(e.tarea) === String(id) && e.alumno === user?.id))
+        } catch (err) {
+            setFileError('Error al subir la entrega. Intenta de nuevo.')
+            console.error(err)
+        } finally {
+            setUploading(false)
+        }
+    }
+
+    if (loading) {
+        return <AppShell><div className="flex items-center justify-center h-64"><p className="text-gray-400 text-sm">Cargando…</p></div></AppShell>
+    }
+
+    if (!tarea) {
+        return <AppShell><div className="flex items-center justify-center h-64"><p className="text-gray-400 text-sm">Tarea no encontrada</p></div></AppShell>
     }
 
     return (
@@ -93,32 +131,32 @@ export default function DetalleTareaPage() {
                         ← Volver
                     </button>
                     <span className="text-gray-200">|</span>
-                    <span className="text-xs text-gray-400">{TAREA.materia}</span>
+                    <span className="text-xs text-gray-400">{tarea.materia_nombre ?? tarea.materia ?? '—'}</span>
                 </div>
 
                 {/* Info de la tarea */}
                 <Card>
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex-1 min-w-0">
-                            <h1 className="text-xl font-bold text-[#3d3d3d]">{TAREA.titulo}</h1>
-                            <p className="text-xs text-gray-400 mt-1"><UserCheck size={14} className="inline" /> {TAREA.docente} · {TAREA.grupo}</p>
+                            <h1 className="text-xl font-bold text-[#3d3d3d]">{tarea.titulo}</h1>
+                            <p className="text-xs text-gray-400 mt-1"><UserCheck size={14} className="inline" /> {tarea.docente_nombre ?? tarea.docente ?? '—'} · {tarea.grupo_nombre ?? ''}</p>
                         </div>
                         <div className="flex-shrink-0 text-right">
                             <p className={`text-sm font-bold ${urgent ? 'text-[#EFB11D]' : 'text-gray-400'}`}>
-                                {new Date(TAREA.fechaLimite).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}
+                                {fechaLimite ? new Date(fechaLimite).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '—'}
                             </p>
                             <p className={`text-xs mt-0.5 ${urgent ? 'text-[#EFB11D]' : 'text-gray-300'}`}>
-                                {new Date(TAREA.fechaLimite).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                                {fechaLimite ? new Date(fechaLimite).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : ''}
                             </p>
                             {urgent && <Badge variant="warning" className="mt-1">¡Vence pronto!</Badge>}
                         </div>
                     </div>
-                    <p className="text-sm text-gray-600 mt-4 leading-relaxed">{TAREA.descripcion}</p>
+                    <p className="text-sm text-gray-600 mt-4 leading-relaxed">{tarea.descripcion}</p>
                 </Card>
 
                 {/* Retroalimentación del docente */}
-                {MI_HISTORIAL.some(e => e.estado === 'calificado') && (() => {
-                    const ultima = MI_HISTORIAL.find(e => e.estado === 'calificado')
+                {historial.some(e => e.estado === 'calificado' || e.calificacion != null) && (() => {
+                    const ultima = historial.find(e => e.estado === 'calificado' || e.calificacion != null)
                     const gradeColor = ultima.calificacion >= 9 ? '#10b981' : ultima.calificacion >= 7 ? '#EFB11D' : '#E43D12'
                     return (
                         <Card>
@@ -266,7 +304,7 @@ export default function DetalleTareaPage() {
                 </Card>
 
                 {/* Historial de entregas */}
-                {MI_HISTORIAL.length > 0 && (
+                {historial.length > 0 && (
                     <Card>
                         <button
                             onClick={() => setHistorialOpen(h => !h)}
@@ -275,7 +313,7 @@ export default function DetalleTareaPage() {
                             <h2 className="text-sm font-bold text-[#3d3d3d]">
                                 <FolderOpen size={16} className="inline" /> Historial de entregas
                                 <span className="ml-2 text-xs font-normal text-gray-400">
-                                    ({MI_HISTORIAL.length} intento{MI_HISTORIAL.length > 1 ? 's' : ''})
+                                    ({historial.length} intento{historial.length > 1 ? 's' : ''})
                                 </span>
                             </h2>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
@@ -285,12 +323,12 @@ export default function DetalleTareaPage() {
                         </button>
                         {historialOpen && (
                             <div className="mt-4 space-y-2">
-                                {MI_HISTORIAL.map(e => (
+                                {historial.map(e => (
                                     <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#EBE9E180' }}>
                                         <span className="text-xl flex-shrink-0">{e.tipo === 'link' ? <Link2 size={20} /> : <Paperclip size={20} />}</span>
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-semibold text-[#3d3d3d] truncate">{e.nombre}</p>
-                                            <p className="text-xs text-gray-400">{e.fecha}{e.tamaño ? ` · ${e.tamaño}` : ''}</p>
+                                            <p className="text-xs font-semibold text-[#3d3d3d] truncate">{e.nombre ?? e.archivo ?? 'Entrega'}</p>
+                                            <p className="text-xs text-gray-400">{e.fecha ?? e.created_at ?? ''}{e.tamaño ? ` · ${e.tamaño}` : ''}</p>
                                         </div>
                                         <div className="text-right flex-shrink-0">
                                             {e.calificacion !== null ? (

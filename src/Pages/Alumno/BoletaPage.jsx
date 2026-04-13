@@ -1,56 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ClipboardList } from 'lucide-react'
 import AppShell from '../../Components/Layout/AppShell'
 import Badge from '../../Components/UI/Badge'
+import { useAuth } from '../../Context/AuthContext'
+import { gruposService } from '../../Services/gruposService'
+import { tareasService } from '../../Services/tareasService'
+import { entregasService } from '../../Services/entregasService'
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-// Estructura derivada de las tablas Inscripcion → Grupo → Materia → Tarea → Entrega.
-// En producción este array vendría de GET /api/alumno/boleta e incluiría:
-//   • La última Entrega calificada por tarea (Entrega.calificacion + Entrega.comentario)
-//   • Las tareas sin entrega o sin calificar (calificacion: null)
-// No hay pesos ni categorías (examen/parcial) porque la DB actual no los almacena.
-// ─────────────────────────────────────────────────────────────────────────────
-const BOLETA = [
-    {
-        grupoId: 1, clave: 'INF-101', materia: 'Introducción a la Programación',
-        color: '#E43D12', docente: 'Dr. Carlos Martínez',
-        tareas: [
-            { id: 1, titulo: 'Algoritmos básicos', fechaLimite: '2026-02-20', calificacion: 9.0, fechaEntrega: '19 Feb 2026' },
-            { id: 2, titulo: 'Funciones y recursividad', fechaLimite: '2026-03-05', calificacion: 8.0, fechaEntrega: '04 Mar 2026' },
-            { id: 3, titulo: 'Proyecto final – calculadora CLI', fechaLimite: '2026-04-10', calificacion: null, fechaEntrega: null },
-        ],
-    },
-    {
-        grupoId: 3, clave: 'FIS-201', materia: 'Física II',
-        color: '#D6536D', docente: 'Dr. Carlos Martínez',
-        tareas: [
-            { id: 4, titulo: 'Reporte Lab 1 – Cinemática', fechaLimite: '2026-02-15', calificacion: 8.5, fechaEntrega: '14 Feb 2026' },
-            { id: 5, titulo: 'Reporte Lab 2 – Dinámica', fechaLimite: '2026-03-01', calificacion: 7.0, fechaEntrega: '01 Mar 2026' },
-            { id: 6, titulo: 'Examen práctico U3', fechaLimite: '2026-03-22', calificacion: 9.5, fechaEntrega: '22 Mar 2026' },
-            { id: 7, titulo: 'Proyecto final – Movimiento Circular', fechaLimite: '2026-04-20', calificacion: null, fechaEntrega: null },
-        ],
-    },
-    {
-        grupoId: 4, clave: 'INF-305', materia: 'Desarrollo Web',
-        color: '#EFB11D', docente: 'Dra. Laura Gómez Reyes',
-        tareas: [
-            { id: 8, titulo: 'Maquetado HTML/CSS – Landing Page', fechaLimite: '2026-02-10', calificacion: 9.5, fechaEntrega: '10 Feb 2026' },
-            { id: 9, titulo: 'Integración con Tailwind CSS', fechaLimite: '2026-02-28', calificacion: 8.5, fechaEntrega: '27 Feb 2026' },
-            { id: 10, titulo: 'SPA con React Router', fechaLimite: '2026-03-20', calificacion: 8.5, fechaEntrega: '19 Mar 2026' },
-            { id: 11, titulo: 'Proyecto Final React', fechaLimite: '2026-04-15', calificacion: null, fechaEntrega: null },
-        ],
-    },
-    {
-        grupoId: 5, clave: 'MAT-101', materia: 'Álgebra Lineal',
-        color: '#7c3aed', docente: 'Mtra. Isabel Fuentes',
-        tareas: [
-            { id: 12, titulo: 'Ejercicios – Matrices y determinantes', fechaLimite: '2026-02-18', calificacion: 7.0, fechaEntrega: '18 Feb 2026' },
-            { id: 13, titulo: 'Tarea – Espacios vectoriales', fechaLimite: '2026-03-10', calificacion: 6.5, fechaEntrega: '10 Mar 2026' },
-            { id: 14, titulo: 'Examen parcial II', fechaLimite: '2026-03-28', calificacion: null, fechaEntrega: null },
-        ],
-    },
-]
-// ─────────────────────────────────────────────────────────────────────────────
+const COLORS = ['#E43D12', '#D6536D', '#EFB11D', '#7c3aed', '#10b981', '#3b82f6', '#f97316']
 
 // Promedio simple: suma de calificaciones / número de tareas calificadas
 function calcPromedio(tareas) {
@@ -74,13 +31,61 @@ function statusBadge(prom) {
 }
 
 export default function BoletaPage() {
+    const { user } = useAuth()
+    const [boleta, setBoleta] = useState([])
+    const [loading, setLoading] = useState(true)
     const [expandedId, setExpandedId] = useState(null)
 
-    const items = BOLETA.map(m => ({ ...m, prom: calcPromedio(m.tareas) }))
+    useEffect(() => {
+        async function load() {
+            try {
+                const [grupos, tareas, entregas] = await Promise.all([
+                    gruposService.getAll(),
+                    tareasService.getAll(),
+                    entregasService.getAll(),
+                ])
+                const gruposList = Array.isArray(grupos) ? grupos : grupos.results ?? []
+                const tareasList = Array.isArray(tareas) ? tareas : tareas.results ?? []
+                const entregasList = Array.isArray(entregas) ? entregas : entregas.results ?? []
+
+                const data = gruposList.map((g, i) => {
+                    const tareasGrupo = tareasList.filter(t => t.grupo === g.id)
+                    return {
+                        grupoId: g.id,
+                        clave: g.clave ?? g.nombre?.substring(0, 7) ?? '',
+                        materia: g.materia_nombre ?? g.nombre ?? '',
+                        color: COLORS[i % COLORS.length],
+                        docente: g.docente_nombre ?? '',
+                        tareas: tareasGrupo.map(t => {
+                            const entrega = entregasList
+                                .filter(e => e.tarea === t.id && e.alumno === user?.id)
+                                .sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0))[0]
+                            return {
+                                id: t.id,
+                                titulo: t.titulo,
+                                fechaLimite: t.fecha_limite,
+                                calificacion: entrega?.calificacion ?? null,
+                                fechaEntrega: entrega?.created_at
+                                    ? new Date(entrega.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+                                    : null,
+                            }
+                        }),
+                    }
+                }).filter(g => g.tareas.length > 0)
+                setBoleta(data)
+            } catch { /* ignore */ }
+            setLoading(false)
+        }
+        load()
+    }, [user])
+
+    const items = boleta.map(m => ({ ...m, prom: calcPromedio(m.tareas) }))
     const conNota = items.filter(m => m.prom !== null)
     const promedioGeneral = conNota.length > 0
         ? conNota.reduce((acc, m) => acc + m.prom, 0) / conNota.length
         : null
+
+    if (loading) return <AppShell><p className="text-center text-gray-400 py-20">Cargando boleta…</p></AppShell>
 
     return (
         <AppShell>
@@ -90,7 +95,7 @@ export default function BoletaPage() {
                 <div className="flex items-end justify-between flex-wrap gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-[#3d3d3d]">Boleta de Calificaciones</h1>
-                        <p className="text-sm text-gray-400 mt-0.5">Ciclo: Enero – Junio 2026 · {BOLETA.length} materias</p>
+                        <p className="text-sm text-gray-400 mt-0.5">{boleta.length} materias</p>
                     </div>
 
                     {/* Promedio general */}

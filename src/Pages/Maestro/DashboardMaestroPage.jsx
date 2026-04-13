@@ -1,31 +1,77 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { UserCheck, FileEdit, UsersRound, Plus, Pencil, Hand } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import StatCard from '../../Components/UI/StatCard'
 import Card from '../../Components/UI/Card'
 import Badge from '../../Components/UI/Badge'
-
-const stats = [
-    { label: 'Grupos activos', value: 4, icon: <UserCheck size={20} />, color: '#E43D12' },
-    { label: 'Entregas sin calificar', value: 45, icon: <FileEdit size={20} />, color: '#EFB11D' },
-    { label: 'Alumnos totales', value: 112, icon: <UsersRound size={20} />, color: '#D6536D' },
-]
-
-const pendientesPorGrupo = [
-    { id: 1, grupo: '101', materia: 'Desarrollo Web', pendientes: 18, vencidas: 3 },
-    { id: 2, grupo: '202', materia: 'Física II', pendientes: 12, vencidas: 0 },
-    { id: 3, grupo: '301', materia: 'Cálculo', pendientes: 15, vencidas: 5 },
-]
-
-const actividad = [
-    { id: 1, alumno: 'María López', accion: 'comentó en el canal', materia: 'Desarrollo Web', tiempo: 'Hace 10 min' },
-    { id: 2, alumno: 'Juan Pérez', accion: 'entregó una tarea', materia: 'Física II', tiempo: 'Hace 34 min' },
-    { id: 3, alumno: 'Ana García', accion: 'comentó en el canal', materia: 'Cálculo', tiempo: 'Hace 1h' },
-    { id: 4, alumno: 'Carlos Ruiz', accion: 'resubió una tarea', materia: 'Desarrollo Web', tiempo: 'Hace 2h' },
-]
+import { useAuth } from '../../Context/AuthContext'
+import { gruposService } from '../../Services/gruposService'
+import { entregasService } from '../../Services/entregasService'
+import { inscripcionesService } from '../../Services/inscripcionesService'
 
 export default function DashboardMaestroPage() {
     const navigate = useNavigate()
+    const { user } = useAuth()
+    const [stats, setStats] = useState([])
+    const [pendientesPorGrupo, setPendientesPorGrupo] = useState([])
+    const [actividad, setActividad] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    const nombre = user?.nombre ?? user?.first_name ?? 'Docente'
+
+    useEffect(() => {
+        async function load() {
+            try {
+                const [grupos, entregas, inscripciones] = await Promise.all([
+                    gruposService.getAll(),
+                    entregasService.getAll(),
+                    inscripcionesService.getAll(),
+                ])
+                const gruposList = Array.isArray(grupos) ? grupos : grupos.results ?? []
+                const entregasList = Array.isArray(entregas) ? entregas : entregas.results ?? []
+                const inscList = Array.isArray(inscripciones) ? inscripciones : inscripciones.results ?? []
+
+                const misGrupos = gruposList.filter(g => g.docente === user?.id)
+                const misGrupoIds = new Set(misGrupos.map(g => g.id))
+                const sinCalificar = entregasList.filter(e => e.calificacion == null && misGrupoIds.has(e.grupo))
+                const alumnosUnicos = new Set(inscList.filter(i => misGrupoIds.has(i.grupo)).map(i => i.alumno))
+
+                setStats([
+                    { label: 'Grupos activos', value: misGrupos.length, icon: <UserCheck size={20} />, color: '#E43D12' },
+                    { label: 'Entregas sin calificar', value: sinCalificar.length, icon: <FileEdit size={20} />, color: '#EFB11D' },
+                    { label: 'Alumnos totales', value: alumnosUnicos.size, icon: <UsersRound size={20} />, color: '#D6536D' },
+                ])
+
+                const pendientes = misGrupos.map(g => {
+                    const p = entregasList.filter(e => e.grupo === g.id && e.calificacion == null)
+                    return {
+                        id: g.id,
+                        grupo: g.clave ?? g.nombre ?? '',
+                        materia: g.materia_nombre ?? g.nombre ?? '',
+                        pendientes: p.length,
+                        vencidas: 0,
+                    }
+                }).filter(g => g.pendientes > 0)
+                setPendientesPorGrupo(pendientes)
+
+                const recientes = entregasList
+                    .filter(e => misGrupoIds.has(e.grupo))
+                    .sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0))
+                    .slice(0, 5)
+                    .map(e => ({
+                        id: e.id,
+                        alumno: e.alumno_nombre ?? `Alumno ${e.alumno}`,
+                        accion: 'entregó una tarea',
+                        materia: e.materia_nombre ?? '',
+                        tiempo: e.created_at ? new Date(e.created_at).toLocaleString('es-MX') : '',
+                    }))
+                setActividad(recientes)
+            } catch { /* ignore */ }
+            setLoading(false)
+        }
+        load()
+    }, [user])
 
     return (
         <TeacherShell>
@@ -33,7 +79,7 @@ export default function DashboardMaestroPage() {
 
                 {/* Saludo */}
                 <div>
-                    <h1 className="text-2xl font-bold text-[#3d3d3d]">Buen día, Dr. Martínez <Hand size={24} className="inline" /></h1>
+                    <h1 className="text-2xl font-bold text-[#3d3d3d]">Buen día, {nombre} <Hand size={24} className="inline" /></h1>
                     <p className="text-sm text-gray-400 mt-0.5">Tienes entregas pendientes de calificar.</p>
                 </div>
 
