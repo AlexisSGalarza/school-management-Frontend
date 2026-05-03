@@ -1,6 +1,45 @@
-# School Management — Frontend
+# Sistema de Gestión Escolar — Frontend
 
-Frontend de un sistema de gestión escolar construido con **React 19**, **Vite** y **Tailwind CSS v4**. La aplicación soporta tres roles de usuario: Alumno, Maestro y Administrador, cada uno con su propio conjunto de vistas y funcionalidades.
+Frontend en **React 19 + Vite + Tailwind v4** para el sistema de gestión escolar. Soporta tres roles (Alumno, Maestro, Administrador) con shells y vistas dedicadas, e incluye un dashboard de monitoreo del sistema distribuido (PIA).
+
+---
+
+## Cómo correrlo
+
+Requiere Node 18+.
+
+```bash
+git clone <url-del-repo>
+cd school-management-Frontend
+
+# 1. Instalar dependencias
+npm install
+
+# 2. Configurar la URL del backend (crea un .env en la raíz)
+echo 'VITE_API_URL=http://localhost:8000/' > .env
+
+# 3. Servidor de desarrollo
+npm run dev
+```
+
+La app queda en `http://localhost:5173/`.
+
+> Si corres el backend en modo distribuido (`docker compose up`), apunta `VITE_API_URL` a `http://localhost:8080/`.
+
+### Build y preview de producción
+
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## Variables de entorno
+
+| Variable | Default | Notas |
+|---|---|---|
+| `VITE_API_URL` | — | URL base del backend (con `/` final). Ej. `http://localhost:8000/` |
 
 ---
 
@@ -12,6 +51,7 @@ Frontend de un sistema de gestión escolar construido con **React 19**, **Vite**
 | React Router DOM | 7 |
 | Tailwind CSS | 4 |
 | Vite | 8 |
+| Axios | 1.x |
 | Lucide React | latest |
 
 ---
@@ -22,88 +62,102 @@ Frontend de un sistema de gestión escolar construido con **React 19**, **Vite**
 src/
 ├── Components/
 │   ├── Auth/          # LoginForm, SignupForm
-│   ├── Layout/        # AppShell, AdminShell, TeacherShell
+│   ├── Layout/        # AppShell (alumno), AdminShell, TeacherShell
 │   └── UI/            # Avatar, Badge, Button, Card, FormField, ModalBase, PageHeader, StatCard, Tabs
-├── Context/           # TasksContext, ToastContext
-├── data/              # Mock data (usuarios, estructura académica)
-├── Hooks/             # Custom hooks
+├── Context/           # AuthContext, TasksContext, ToastContext
+├── data/              # Mock data
+├── Hooks/
 ├── Pages/
-│   ├── Admin/         # Dashboard, Usuarios, Estructura Académica, Reportes, Perfil
-│   ├── Alumno/        # Dashboard, Materias, Aula Virtual, Tareas, Boleta, Perfil
-│   └── Maestro/       # Dashboard, Grupos, Panel de Grupo, Creador de Tarea, Calificaciones, Perfil
-├── Routes/            # AppRoute.jsx — definición central de rutas
-├── Services/          # Capa de servicios (API calls)
-└── Utilis/            # Utilidades generales
+│   ├── Admin/         # Dashboard, Usuarios, Estructura, Reportes, Monitoreo, Perfil
+│   ├── Alumno/        # Dashboard, Materias, Aula virtual, Tareas, Detalle tarea, Boleta, Perfil
+│   └── Maestro/       # Dashboard, Mis grupos, Panel grupo, Creador tarea, Centro calificación, Materias, Perfil
+├── Routes/
+│   └── Approute.jsx   # Definición central de rutas + guards por rol
+├── Services/          # api.js + un service por recurso (gruposService, entregasService, systemService, etc.)
+├── Utilis/
+├── App.jsx
+├── main.jsx
+└── index.css          # Variables CSS globales (paleta de colores)
 ```
 
 ---
 
-## Rutas disponibles
+## Paleta de colores
 
-### Autenticación
+Definida como variables CSS en `src/index.css`:
+
+| Variable | Hex | Uso |
+|---|---|---|
+| `--color-primary` | `#E43D12` | Botones principales, CTA |
+| `--color-secondary` | `#D6536D` | Badges, etiquetas |
+| `--color-accent` | `#FFA2B6` | Hover, fondos destacados |
+| `--color-warning` | `#EFB11D` | Alertas, vencimientos |
+| `--color-background` | `#EBE9E1` | Fondo general |
+
+---
+
+## Rutas
+
+### Públicas
 | Ruta | Descripción |
 |---|---|
-| `/` / `/auth` | Página de login / registro |
+| `/`, `/auth` | Login / registro |
 
 ### Alumno
 | Ruta | Descripción |
 |---|---|
-| `/alumno/dashboard` | Panel principal del alumno |
-| `/alumno/materias` | Lista de materias |
-| `/alumno/materias/:id` | Aula virtual de una materia |
-| `/alumno/tareas` | Lista de tareas pendientes |
-| `/alumno/tareas/:id` | Detalle de una tarea |
+| `/alumno/dashboard` | Panel principal |
+| `/alumno/materias` | Lista de materias + **inscripción por código** |
+| `/alumno/materias/:id` | Aula virtual (Canal, Tareas, Materiales) |
+| `/alumno/tareas` | Tareas pendientes |
+| `/alumno/tareas/:id` | Detalle + entrega (archivo o URL de video) |
 | `/alumno/boleta` | Boleta de calificaciones |
-| `/alumno/perfil` | Perfil del alumno |
+| `/alumno/perfil` | Perfil |
 
 ### Maestro
 | Ruta | Descripción |
 |---|---|
-| `/maestro/dashboard` | Panel principal del maestro |
-| `/maestro/grupos` | Lista de grupos |
-| `/maestro/grupos/:id` | Panel de un grupo |
+| `/maestro/dashboard` | Panel principal |
+| `/maestro/grupos` | Mis grupos |
+| `/maestro/grupos/:id` | Panel del grupo (canal, tareas, **materiales CRUD**, alumnos) |
 | `/maestro/grupos/:id/crear-tarea` | Creador de tarea |
-| `/maestro/grupos/:id/calificacion` | Centro de calificación del grupo |
+| `/maestro/grupos/:id/calificacion` | Centro de calificación |
 | `/maestro/materias` | Materias del docente |
-| `/maestro/perfil` | Perfil del maestro |
+| `/maestro/perfil` | Perfil |
 
 ### Administrador
 | Ruta | Descripción |
 |---|---|
-| `/admin/dashboard` | Panel principal del admin |
+| `/admin/dashboard` | Panel principal |
 | `/admin/usuarios` | Gestión de usuarios |
-| `/admin/estructura` | Estructura académica |
+| `/admin/estructura` | Estructura académica (ciclos, materias, grupos) |
 | `/admin/reportes` | Reportes |
-| `/admin/perfil` | Perfil del administrador |
+| `/admin/monitoreo` | **Monitoreo del sistema distribuido (PIA)** |
+| `/admin/perfil` | Perfil |
 
 ---
 
-## Instalación y uso
+## Dashboard de monitoreo (PIA)
 
-```bash
-# Instalar dependencias
-npm install
+`/admin/monitoreo` muestra en vivo (auto-refresh cada 5s):
 
-# Servidor de desarrollo
-npm run dev
-
-# Build de producción
-npm run build
-
-# Vista previa del build
-npm run preview
-
-# Lint
-npm run lint
-```
+- **Estado general**: salud del sistema, conexión DB, cache, instancia que respondió, uptime
+- **CPU**: porcentaje global + barras por core, load average 1/5/15 min
+- **RAM**: usado/total, disponible
+- **Disco**: usado/total, libre
+- **Proceso Django**: PID, threads, memoria, workers configurados
+- **Latencias**: avg, p50, p95, p99 sobre las últimas 1000 muestras
+- **Status HTTP**: conteo por código (verde 2xx, ámbar 4xx, rojo 5xx)
+- **Top rutas**: más activas con peticiones, errores, latencia avg/max
+- **Circuit breakers**: estado (closed/open/half_open) y fallos consecutivos por servicio externo
 
 ---
 
-## Scripts disponibles
+## Scripts
 
 | Comando | Descripción |
 |---|---|
-| `npm run dev` | Inicia el servidor de desarrollo (Vite) |
-| `npm run build` | Genera el build de producción |
-| `npm run preview` | Previsualiza el build localmente |
-| `npm run lint` | Ejecuta ESLint |
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Build de producción |
+| `npm run preview` | Preview del build |
+| `npm run lint` | ESLint |

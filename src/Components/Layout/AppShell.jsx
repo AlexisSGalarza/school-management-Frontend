@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { Home, BookOpen, ClipboardList, BarChart3, Hand, User, LogOut } from 'lucide-react'
 import Avatar from '../UI/Avatar'
+import { useAuth } from '../../Context/AuthContext'
+import { useCicloActivo } from '../../Hooks/useCicloActivo'
+import { publicacionesService } from '../../Services/publicacionesService'
 
 const navItems = [
     { to: '/alumno/dashboard', icon: Home, label: 'Inicio' },
@@ -10,25 +13,55 @@ const navItems = [
     { to: '/alumno/boleta', icon: BarChart3, label: 'Boleta' },
 ]
 
-const USER = { nombre: 'Alexis Galarza', ciclo: 'Enero – Junio 2026' }
-
-const AVISOS = [
-    { id: 1, texto: 'Cambio de horario – Desarrollo Web', materia: 'Desarrollo Web', tiempo: 'Hace 2h', leido: false },
-    { id: 2, texto: 'Material de apoyo parcial 2', materia: 'Física II', tiempo: 'Hace 5h', leido: false },
-    { id: 3, texto: 'Recordatorio: entrega próxima', materia: 'Español', tiempo: 'Ayer', leido: true },
-]
+function tiempoRelativo(iso) {
+    if (!iso) return ''
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000
+    if (diff < 60) return 'Hace un momento'
+    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} h`
+    if (diff < 604800) return `Hace ${Math.floor(diff / 86400)} d`
+    return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+}
 
 export default function AppShell({ children }) {
     const navigate = useNavigate()
     const location = useLocation()
+    const { user, logout } = useAuth()
+    const cicloActivo = useCicloActivo()
     const [mobileOpen, setMobileOpen] = useState(false)
     const [bellOpen, setBellOpen] = useState(false)
     const [userMenuOpen, setUserMenuOpen] = useState(false)
     const [logoutModal, setLogoutModal] = useState(false)
-    const [avisos, setAvisos] = useState(AVISOS)
+    const [avisos, setAvisos] = useState([])
+    const [readIds, setReadIds] = useState(() => new Set(JSON.parse(localStorage.getItem('avisos_leidos_alumno') || '[]')))
+
+    const nombreUsuario = user?.nombre || user?.email || 'Alumno'
+    const cicloNombre = cicloActivo?.nombre || 'Sin ciclo activo'
 
     const bellRef = useRef(null)
     const userRef = useRef(null)
+
+    // Carga publicaciones recientes (las visibles para el alumno) como avisos.
+    useEffect(() => {
+        let cancelled = false
+        publicacionesService.getAll()
+            .then(data => {
+                if (cancelled) return
+                const list = Array.isArray(data) ? data : data.results ?? []
+                const ordenados = [...list]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 8)
+                setAvisos(ordenados.map(p => ({
+                    id: p.id,
+                    texto: p.titulo || p.contenido?.slice(0, 80) || 'Nueva publicacion',
+                    materia: p.materia_nombre || 'Materia',
+                    tiempo: tiempoRelativo(p.created_at),
+                    leido: readIds.has(p.id),
+                })))
+            })
+            .catch(() => { if (!cancelled) setAvisos([]) })
+        return () => { cancelled = true }
+    }, [readIds])
 
     // Cierra dropdowns al hacer clic fuera
     useEffect(() => {
@@ -43,7 +76,15 @@ export default function AppShell({ children }) {
     const unread = avisos.filter(a => !a.leido).length
 
     function markAllRead() {
+        const allIds = new Set([...readIds, ...avisos.map(a => a.id)])
+        setReadIds(allIds)
+        localStorage.setItem('avisos_leidos_alumno', JSON.stringify([...allIds]))
         setAvisos(prev => prev.map(a => ({ ...a, leido: true })))
+    }
+
+    function handleLogout() {
+        logout()
+        navigate('/auth')
     }
 
     return (
@@ -54,7 +95,7 @@ export default function AppShell({ children }) {
                 <div className="px-5 py-5">
                     <BrandLogo />
                 </div>
-                <SidebarContent navigate={navigate} />
+                <SidebarContent navigate={navigate} nombre={nombreUsuario} />
             </aside>
 
             {/* ── DRAWER MOBILE ── */}
@@ -66,7 +107,7 @@ export default function AppShell({ children }) {
                             <BrandLogo />
                             <button onClick={() => setMobileOpen(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-white hover:text-[#E43D12] transition-all">✕</button>
                         </div>
-                        <SidebarContent navigate={navigate} onNavClick={() => setMobileOpen(false)} />
+                        <SidebarContent navigate={navigate} nombre={nombreUsuario} onNavClick={() => setMobileOpen(false)} />
                     </aside>
                 </div>
             )}
@@ -94,7 +135,7 @@ export default function AppShell({ children }) {
                                 Cancelar
                             </button>
                             <button
-                                onClick={() => navigate('/')}
+                                onClick={handleLogout}
                                 className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
                                 style={{ backgroundColor: 'var(--color-primary)' }}
                             >
@@ -127,7 +168,7 @@ export default function AppShell({ children }) {
                         <div className="hidden sm:block">
                             <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--color-primary)' }} />
-                                <p className="text-sm font-semibold text-[#3d3d3d]">{USER.ciclo}</p>
+                                <p className="text-sm font-semibold text-[#3d3d3d]">{cicloNombre}</p>
                             </div>
                             <p className="text-xs text-gray-400 pl-4">Ciclo activo</p>
                         </div>
@@ -206,9 +247,9 @@ export default function AppShell({ children }) {
                                 onClick={() => { setUserMenuOpen(p => !p); setBellOpen(false) }}
                                 className={`flex items-center gap-2 rounded-xl pl-1 pr-3 py-1 transition-all duration-200 ${userMenuOpen ? 'bg-[#EBE9E1]' : 'hover:bg-[#EBE9E1]'}`}
                             >
-                                <Avatar name={USER.nombre} size="sm" />
+                                <Avatar name={nombreUsuario} size="sm" />
                                 <div className="hidden sm:block text-left">
-                                    <p className="text-xs font-bold text-[#3d3d3d] leading-tight truncate max-w-[110px]">{USER.nombre}</p>
+                                    <p className="text-xs font-bold text-[#3d3d3d] leading-tight truncate max-w-[110px]">{nombreUsuario}</p>
                                     <p className="text-[10px] text-gray-400 leading-tight">Alumno</p>
                                 </div>
                                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`text-gray-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}>
@@ -220,8 +261,8 @@ export default function AppShell({ children }) {
                                 <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 anim-slide-down">
                                     {/* Header del menú */}
                                     <div className="px-4 py-3 border-b border-gray-50">
-                                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{USER.nombre}</p>
-                                        <p className="text-[10px] text-gray-400 mt-0.5">Alumno · Ciclo activo</p>
+                                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{nombreUsuario}</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5">Alumno · {cicloNombre}</p>
                                     </div>
                                     <button
                                         onClick={() => { navigate('/alumno/perfil'); setUserMenuOpen(false) }}
@@ -290,7 +331,7 @@ function BrandLogo() {
     )
 }
 
-function SidebarContent({ navigate, onNavClick }) {
+function SidebarContent({ navigate, onNavClick, nombre }) {
     return (
         <div className="flex flex-col h-full">
             {/* Sección nav */}
@@ -329,9 +370,9 @@ function SidebarContent({ navigate, onNavClick }) {
                     onClick={() => navigate('/alumno/perfil')}
                     title="Ver perfil"
                 >
-                    <Avatar name={USER.nombre} size="sm" />
+                    <Avatar name={nombre} size="sm" />
                     <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{USER.nombre}</p>
+                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{nombre}</p>
                         <p className="text-[10px] text-gray-400">Alumno</p>
                     </div>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

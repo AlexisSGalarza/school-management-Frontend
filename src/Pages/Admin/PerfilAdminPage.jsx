@@ -1,99 +1,102 @@
 import { useState } from 'react'
-import { Pencil, Lock, User, Mail, Phone, Tag, IdCard, Calendar } from 'lucide-react'
+import { Pencil, Lock, User, Mail, IdCard, Calendar, ShieldCheck } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
 import Avatar from '../../Components/UI/Avatar'
 import Badge from '../../Components/UI/Badge'
 import ModalBase from '../../Components/UI/ModalBase'
 import FormField from '../../Components/UI/FormField'
+import { useAuth } from '../../Context/AuthContext'
 import { useToast } from '../../Context/ToastContext'
-
-const INIT_ADMIN = {
-    nombre:   'Lic. Patricia Montes',
-    email:    'patricia.montes@escuela.edu.mx',
-    empleado: 'ADM001',
-    cargo:    'Administradora General',
-    telefono: '+52 (55) 1234-5678',
-    ingreso:  '2021-03-15',
-}
+import { usersService } from '../../Services/usersService'
 
 function validateEdit(form) {
     const errors = {}
-    if (!form.nombre.trim())  errors.nombre  = 'El nombre es requerido'
-    if (!form.email.trim())   errors.email   = 'El email es requerido'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = 'Email inválido'
-    if (!form.telefono.trim()) errors.telefono = 'El teléfono es requerido'
+    if (!form.nombre.trim()) errors.nombre = 'El nombre es requerido'
+    if (!form.email.trim()) errors.email = 'El email es requerido'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = 'Email invalido'
     return errors
 }
 
 function validatePass(form) {
     const errors = {}
-    if (!form.actual)              errors.actual   = 'Ingresa tu contraseña actual'
-    if (!form.nueva)               errors.nueva    = 'La nueva contraseña es requerida'
-    else if (form.nueva.length < 6) errors.nueva   = 'Mínimo 6 caracteres'
-    if (form.nueva !== form.confirm) errors.confirm = 'Las contraseñas no coinciden'
+    if (!form.nueva) errors.nueva = 'La nueva contrasena es requerida'
+    else if (form.nueva.length < 6) errors.nueva = 'Minimo 6 caracteres'
+    if (form.nueva !== form.confirm) errors.confirm = 'Las contrasenas no coinciden'
     return errors
 }
 
 export default function PerfilAdminPage() {
+    const { user, refreshUser } = useAuth()
     const { addToast } = useToast()
-    const [admin,      setAdmin]      = useState(INIT_ADMIN)
-    const [editModal,  setEditModal]  = useState(false)
-    const [passModal,  setPassModal]  = useState(false)
-    const [editForm,   setEditForm]   = useState({})
-    const [passForm,   setPassForm]   = useState({ actual: '', nueva: '', confirm: '' })
+    const [editModal, setEditModal] = useState(false)
+    const [passModal, setPassModal] = useState(false)
+    const [editForm, setEditForm] = useState({})
+    const [passForm, setPassForm] = useState({ nueva: '', confirm: '' })
     const [editErrors, setEditErrors] = useState({})
     const [passErrors, setPassErrors] = useState({})
 
+    if (!user) {
+        return <AdminShell><div className="p-10 text-center text-gray-400">Cargando perfil...</div></AdminShell>
+    }
+
+    const fechaIngreso = user.created_at
+        ? new Date(user.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '—'
+
     function openEdit() {
-        setEditForm({ nombre: admin.nombre, email: admin.email, telefono: admin.telefono, cargo: admin.cargo })
+        setEditForm({ nombre: user.nombre ?? '', email: user.email ?? '' })
         setEditErrors({})
         setEditModal(true)
     }
 
-    function handleEditChange(e) {
-        const { name, value } = e.target
-        setEditForm(prev => ({ ...prev, [name]: value }))
-        setEditErrors(prev => ({ ...prev, [name]: undefined }))
-    }
-
-    function handleEditSubmit(e) {
+    async function handleEditSubmit(e) {
         e.preventDefault()
         const errs = validateEdit(editForm)
         if (Object.keys(errs).length) { setEditErrors(errs); return }
-        setAdmin(prev => ({ ...prev, ...editForm }))
-        setEditModal(false)
-        addToast('Perfil actualizado correctamente')
+        try {
+            await usersService.update(user.id, {
+                nombre: editForm.nombre.trim(),
+                email: editForm.email.trim(),
+                matricula: user.matricula,
+                rol: user.rol,
+            })
+            await refreshUser()
+            setEditModal(false)
+            addToast('Perfil actualizado correctamente')
+        } catch (err) {
+            const data = err?.response?.data
+            const msg = data?.email?.[0] || data?.detail || 'Error al actualizar'
+            addToast(msg, 'error')
+        }
     }
 
-    function handlePassChange(e) {
-        const { name, value } = e.target
-        setPassForm(prev => ({ ...prev, [name]: value }))
-        setPassErrors(prev => ({ ...prev, [name]: undefined }))
-    }
-
-    function handlePassSubmit(e) {
+    async function handlePassSubmit(e) {
         e.preventDefault()
         const errs = validatePass(passForm)
         if (Object.keys(errs).length) { setPassErrors(errs); return }
-        setPassModal(false)
-        setPassForm({ actual: '', nueva: '', confirm: '' })
-        addToast('Contraseña actualizada correctamente')
+        try {
+            await usersService.update(user.id, { password: passForm.nueva })
+            setPassModal(false)
+            setPassForm({ nueva: '', confirm: '' })
+            addToast('Contrasena actualizada correctamente')
+        } catch (err) {
+            addToast('Error al cambiar la contrasena', 'error')
+        }
     }
 
     return (
         <AdminShell>
             <div className="space-y-5 max-w-2xl mx-auto">
-
-                {/* Header de perfil */}
+                {/* Header */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm">
                     <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-                        <Avatar name={admin.nombre} size="xl" variant="admin" />
+                        <Avatar name={user.nombre} size="xl" variant="admin" />
                         <div className="flex-1 text-center sm:text-left">
-                            <h1 className="text-xl font-black text-[#3d3d3d]">{admin.nombre}</h1>
-                            <p className="text-sm text-gray-400 mt-0.5">{admin.cargo}</p>
+                            <h1 className="text-xl font-black text-[#3d3d3d]">{user.nombre || user.email}</h1>
+                            <p className="text-sm text-gray-400 mt-0.5">Administrador del sistema</p>
                             <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
                                 <Badge variant="primary">Admin</Badge>
-                                <span className="text-xs text-gray-400">{admin.empleado}</span>
+                                <span className="text-xs text-gray-400">ID #{user.matricula ?? user.id}</span>
                             </div>
                             <div className="flex flex-col sm:flex-row gap-2 mt-4">
                                 <button
@@ -104,55 +107,30 @@ export default function PerfilAdminPage() {
                                     <Pencil size={14} className="inline mr-1" /> Editar perfil
                                 </button>
                                 <button
-                                    onClick={() => { setPassForm({ actual: '', nueva: '', confirm: '' }); setPassErrors({}); setPassModal(true) }}
+                                    onClick={() => { setPassForm({ nueva: '', confirm: '' }); setPassErrors({}); setPassModal(true) }}
                                     className="px-5 py-2 rounded-full text-sm font-semibold border-2 border-gray-200 text-gray-600 hover:border-gray-300 transition-colors"
                                 >
-                                    <Lock size={14} className="inline mr-1" /> Cambiar contraseña
+                                    <Lock size={14} className="inline mr-1" /> Cambiar contrasena
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Información */}
+                {/* Informacion */}
                 <div className="bg-white rounded-2xl p-6 shadow-sm">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Información de la cuenta</p>
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Informacion de la cuenta</p>
                     <div className="grid sm:grid-cols-2 gap-4">
-                        <InfoRow icon={<User size={16} />} label="Nombre completo"   value={admin.nombre}   />
-                        <InfoRow icon={<Mail size={16} />} label="Email institucional" value={admin.email}   />
-                        <InfoRow icon={<Phone size={16} />} label="Teléfono"           value={admin.telefono} />
-                        <InfoRow icon={<Tag size={16} />}  label="Cargo"             value={admin.cargo}    />
-                        <InfoRow icon={<IdCard size={16} />}  label="ID Empleado"        value={admin.empleado} />
-                        <InfoRow
-                            icon={<Calendar size={16} />}
-                            label="Fecha de ingreso"
-                            value={new Date(admin.ingreso + 'T12:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        />
+                        <InfoRow icon={<User size={16} />} label="Nombre" value={user.nombre || '—'} />
+                        <InfoRow icon={<Mail size={16} />} label="Email" value={user.email} />
+                        <InfoRow icon={<IdCard size={16} />} label="Matricula / Empleado" value={user.matricula ?? '—'} />
+                        <InfoRow icon={<ShieldCheck size={16} />} label="Estado" value={user.activo ? 'Activo' : 'Inactivo'} />
+                        <InfoRow icon={<Calendar size={16} />} label="Fecha de ingreso" value={fechaIngreso} />
                     </div>
                 </div>
-
-                {/* Seguridad */}
-                <div className="bg-white rounded-2xl p-6 shadow-sm">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Seguridad</p>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ background: '#E43D1210' }}><Lock size={20} /></div>
-                            <div>
-                                <p className="text-sm font-semibold text-[#3d3d3d]">Contraseña</p>
-                                <p className="text-xs text-gray-400">Última actualización: hace 30 días</p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => { setPassForm({ actual: '', nueva: '', confirm: '' }); setPassErrors({}); setPassModal(true) }}
-                            className="text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-                            style={{ background: '#E43D1210', color: 'var(--color-primary)' }}
-                        >Cambiar</button>
-                    </div>
-                </div>
-
             </div>
 
-            {/* Modal Editar perfil */}
+            {/* Modal Editar */}
             <ModalBase
                 isOpen={editModal}
                 onClose={() => setEditModal(false)}
@@ -161,37 +139,32 @@ export default function PerfilAdminPage() {
                 maxWidth="max-w-md"
             >
                 <form onSubmit={handleEditSubmit} className="space-y-4">
-                    <FormField label="Nombre completo"     name="nombre"   value={editForm.nombre}   onChange={handleEditChange} error={editErrors.nombre}  />
-                    <FormField label="Email institucional" name="email"    value={editForm.email}    onChange={handleEditChange} error={editErrors.email}   type="email" />
-                    <FormField label="Teléfono"            name="telefono" value={editForm.telefono} onChange={handleEditChange} error={editErrors.telefono} />
-                    <FormField label="Cargo"               name="cargo"    value={editForm.cargo}    onChange={handleEditChange} />
+                    <FormField label="Nombre completo" name="nombre" value={editForm.nombre} onChange={e => setEditForm(p => ({ ...p, nombre: e.target.value }))} error={editErrors.nombre} />
+                    <FormField label="Email" name="email" value={editForm.email} onChange={e => setEditForm(p => ({ ...p, email: e.target.value }))} error={editErrors.email} type="email" />
                     <div className="flex gap-3 pt-1">
-                        <button type="button" onClick={() => setEditModal(false)} className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors">Cancelar</button>
-                        <button type="submit" className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>Guardar</button>
+                        <button type="button" onClick={() => setEditModal(false)} className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500">Cancelar</button>
+                        <button type="submit" className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>Guardar</button>
                     </div>
                 </form>
             </ModalBase>
 
-            {/* Modal Cambiar contraseña */}
+            {/* Modal Cambiar contrasena */}
             <ModalBase
                 isOpen={passModal}
                 onClose={() => setPassModal(false)}
-                title="Cambiar Contraseña"
+                title="Cambiar Contrasena"
                 icon={<Lock size={18} />}
-                iconBg="#E43D1218"
                 maxWidth="max-w-sm"
             >
                 <form onSubmit={handlePassSubmit} className="space-y-4">
-                    <FormField label="Contraseña actual"   name="actual"  value={passForm.actual}  onChange={handlePassChange} error={passErrors.actual}  type="password" />
-                    <FormField label="Nueva contraseña"    name="nueva"   value={passForm.nueva}   onChange={handlePassChange} error={passErrors.nueva}   type="password" placeholder="Mín. 6 caracteres" />
-                    <FormField label="Confirmar contraseña" name="confirm" value={passForm.confirm} onChange={handlePassChange} error={passErrors.confirm} type="password" />
+                    <FormField label="Nueva contrasena" name="nueva" value={passForm.nueva} onChange={e => setPassForm(p => ({ ...p, nueva: e.target.value }))} error={passErrors.nueva} type="password" placeholder="Min. 6 caracteres" />
+                    <FormField label="Confirmar" name="confirm" value={passForm.confirm} onChange={e => setPassForm(p => ({ ...p, confirm: e.target.value }))} error={passErrors.confirm} type="password" />
                     <div className="flex gap-3 pt-1">
-                        <button type="button" onClick={() => setPassModal(false)} className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors">Cancelar</button>
-                        <button type="submit" className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white hover:opacity-90 transition-opacity" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>Actualizar</button>
+                        <button type="button" onClick={() => setPassModal(false)} className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500">Cancelar</button>
+                        <button type="submit" className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white" style={{ background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))' }}>Actualizar</button>
                     </div>
                 </form>
             </ModalBase>
-
         </AdminShell>
     )
 }

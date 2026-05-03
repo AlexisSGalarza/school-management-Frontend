@@ -1,34 +1,47 @@
 import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Landmark, BarChart3, Hand, User, LogOut, X } from 'lucide-react'
+import { LayoutDashboard, Users, Landmark, BarChart3, Hand, User, LogOut, X, Activity } from 'lucide-react'
 import Avatar from '../UI/Avatar'
+import { useAuth } from '../../Context/AuthContext'
 import { useTasks } from '../../Context/TasksContext'
+import { useCicloActivo } from '../../Hooks/useCicloActivo'
+import { usersService } from '../../Services/usersService'
 
 const navItems = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/usuarios', icon: Users, label: 'Usuarios' },
     { to: '/admin/estructura', icon: Landmark, label: 'Estructura Académica' },
     { to: '/admin/reportes', icon: BarChart3, label: 'Reportes' },
+    { to: '/admin/monitoreo', icon: Activity, label: 'Monitoreo' },
 ]
 
-const ADMIN = { nombre: 'Lic. Patricia Montes', ciclo: 'Enero – Junio 2026', empleado: 'ADM001' }
-
-const AVISOS = [
-    { id: 1, texto: 'Nuevo usuario registrado: Juan Pérez', tipo: 'Sistema', tiempo: 'Hace 15 min', leido: false },
-    { id: 2, texto: 'Ciclo 2026-2 creado exitosamente', tipo: 'Sistema', tiempo: 'Hace 2h', leido: false },
-    { id: 3, texto: 'Reporte de asistencia generado', tipo: 'Reporte', tiempo: 'Ayer', leido: true },
-]
+function tiempoRelativo(iso) {
+    if (!iso) return ''
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000
+    if (diff < 60) return 'Hace un momento'
+    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} h`
+    if (diff < 604800) return `Hace ${Math.floor(diff / 86400)} d`
+    return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+}
 
 export default function AdminShell({ children }) {
     const navigate = useNavigate()
     const location = useLocation()
+    const { user, logout } = useAuth()
     const { tasks } = useTasks()
+    const cicloActivo = useCicloActivo()
 
     const [mobileOpen, setMobileOpen] = useState(false)
     const [bellOpen, setBellOpen] = useState(false)
     const [userMenuOpen, setUserMenuOpen] = useState(false)
     const [logoutModal, setLogoutModal] = useState(false)
-    const [avisos, setAvisos] = useState(AVISOS)
+    const [avisos, setAvisos] = useState([])
+    const [readIds, setReadIds] = useState(() => new Set(JSON.parse(localStorage.getItem('avisos_leidos_admin') || '[]')))
+
+    const nombreUsuario = user?.nombre || user?.email || 'Administrador'
+    const cicloNombre = cicloActivo?.nombre || 'Sin ciclo activo'
+    const empleado = user?.matricula ?? 'ADM'
 
     const bellRef = useRef(null)
     const userRef = useRef(null)
@@ -42,11 +55,41 @@ export default function AdminShell({ children }) {
         return () => document.removeEventListener('mousedown', handle)
     }, [])
 
+    // Avisos del admin: usuarios recien registrados (created_at desc)
+    useEffect(() => {
+        let cancelled = false
+        usersService.getAll()
+            .then(data => {
+                if (cancelled) return
+                const list = Array.isArray(data) ? data : data.results ?? []
+                const recientes = [...list]
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 8)
+                setAvisos(recientes.map(u => ({
+                    id: u.id,
+                    texto: `Usuario registrado: ${u.nombre || u.email}`,
+                    tipo: u.rol ? u.rol.charAt(0).toUpperCase() + u.rol.slice(1) : 'Usuario',
+                    tiempo: tiempoRelativo(u.created_at),
+                    leido: readIds.has(u.id),
+                })))
+            })
+            .catch(() => { if (!cancelled) setAvisos([]) })
+        return () => { cancelled = true }
+    }, [readIds])
+
     const unread = avisos.filter(a => !a.leido).length
     const processing = tasks.filter(t => t.status === 'processing').length
 
     function markAllRead() {
+        const allIds = new Set([...readIds, ...avisos.map(a => a.id)])
+        setReadIds(allIds)
+        localStorage.setItem('avisos_leidos_admin', JSON.stringify([...allIds]))
         setAvisos(prev => prev.map(a => ({ ...a, leido: true })))
+    }
+
+    function handleLogout() {
+        logout()
+        navigate('/auth')
     }
 
     return (
@@ -57,7 +100,7 @@ export default function AdminShell({ children }) {
                 <div className="px-5 py-5">
                     <BrandLogo />
                 </div>
-                <SidebarContent navigate={navigate} processing={processing} />
+                <SidebarContent navigate={navigate} processing={processing} cicloNombre={cicloNombre} />
             </aside>
 
             {/* ── DRAWER MOBILE ───────────────────────────────────────────── */}
@@ -78,6 +121,7 @@ export default function AdminShell({ children }) {
                         <SidebarContent
                             navigate={navigate}
                             processing={processing}
+                            cicloNombre={cicloNombre}
                             onNavClick={() => setMobileOpen(false)}
                         />
                     </aside>
@@ -105,7 +149,7 @@ export default function AdminShell({ children }) {
                                 className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
                             >Cancelar</button>
                             <button
-                                onClick={() => navigate('/')}
+                                onClick={handleLogout}
                                 className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
                                 style={{ backgroundColor: 'var(--color-primary)' }}
                             >Cerrar sesión</button>
@@ -135,7 +179,7 @@ export default function AdminShell({ children }) {
                         <div className="hidden sm:block">
                             <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--color-primary)' }} />
-                                <p className="text-sm font-semibold text-[#3d3d3d]">{ADMIN.ciclo}</p>
+                                <p className="text-sm font-semibold text-[#3d3d3d]">{cicloNombre}</p>
                             </div>
                             <p className="text-xs text-gray-400 pl-4">Ciclo activo</p>
                         </div>
@@ -216,9 +260,9 @@ export default function AdminShell({ children }) {
                                 onClick={() => { setUserMenuOpen(p => !p); setBellOpen(false) }}
                                 className={`flex items-center gap-2 rounded-xl pl-1 pr-3 py-1 transition-all duration-200 ${userMenuOpen ? 'bg-[#EBE9E1]' : 'hover:bg-[#EBE9E1]'}`}
                             >
-                                <Avatar name={ADMIN.nombre} size="sm" variant="admin" />
+                                <Avatar name={nombreUsuario} size="sm" variant="admin" />
                                 <div className="hidden sm:block text-left">
-                                    <p className="text-xs font-bold text-[#3d3d3d] leading-tight truncate max-w-[120px]">{ADMIN.nombre}</p>
+                                    <p className="text-xs font-bold text-[#3d3d3d] leading-tight truncate max-w-[120px]">{nombreUsuario}</p>
                                     <p className="text-[10px] text-gray-400 leading-tight">Administrador</p>
                                 </div>
                                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`text-gray-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}>
@@ -229,8 +273,8 @@ export default function AdminShell({ children }) {
                             {userMenuOpen && (
                                 <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 anim-slide-down">
                                     <div className="px-4 py-3 border-b border-gray-50">
-                                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{ADMIN.nombre}</p>
-                                        <p className="text-[10px] text-gray-400 mt-0.5">Admin · {ADMIN.empleado}</p>
+                                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{nombreUsuario}</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5">Admin · {empleado}</p>
                                     </div>
                                     <div className="border-t border-gray-100 mx-3 mt-1" />
                                     <button
@@ -299,7 +343,7 @@ function BrandLogo() {
     )
 }
 
-function SidebarContent({ processing, onNavClick }) {
+function SidebarContent({ processing, onNavClick, cicloNombre }) {
     return (
         <div className="flex flex-col h-full">
             <div className="px-3 flex-1 overflow-y-auto">
@@ -336,7 +380,7 @@ function SidebarContent({ processing, onNavClick }) {
                     <span className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse" style={{ backgroundColor: 'var(--color-primary)' }} />
                     <p className="text-xs font-bold" style={{ color: 'var(--color-primary)' }}>Ciclo Activo</p>
                 </div>
-                <p className="text-xs text-gray-600 mt-1 pl-4 font-medium">Enero – Junio 2026</p>
+                <p className="text-xs text-gray-600 mt-1 pl-4 font-medium">{cicloNombre}</p>
             </div>
         </div>
     )

@@ -87,7 +87,7 @@ export default function MateriasPage() {
 
     async function handleConfirmar() {
         try {
-            await inscripcionesService.create({ grupo: confirmGrupo.id, alumno: user?.id })
+            await gruposService.joinByCode(confirmGrupo.codigo)
             const idx = materias.length
             setMaterias(prev => [...prev, grupoToMateria(confirmGrupo, idx, ciclos)])
             addToast(`¡Inscrito en ${confirmGrupo.materia} (${confirmGrupo.clave})!`)
@@ -95,7 +95,8 @@ export default function MateriasPage() {
             setConfirmGrupo(null)
             setCodigo('')
         } catch (err) {
-            setCodigoError('Error al inscribirse. Intenta de nuevo.')
+            const msg = err?.response?.data?.error || err?.response?.data?.detail || 'Error al inscribirse. Intenta de nuevo.'
+            setCodigoError(msg)
             console.error(err)
         }
     }

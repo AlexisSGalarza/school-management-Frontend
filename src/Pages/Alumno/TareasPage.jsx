@@ -5,7 +5,7 @@ import AppShell from '../../Components/Layout/AppShell'
 import Tabs from '../../Components/UI/Tabs'
 import Badge from '../../Components/UI/Badge'
 import { tareasService } from '../../Services/tareasService'
-import { gruposService } from '../../Services/gruposService'
+import { entregasService } from '../../Services/entregasService'
 import { useAuth } from '../../Context/AuthContext'
 
 const TABS = [
@@ -30,19 +30,30 @@ export default function TareasPage() {
     useEffect(() => {
         async function fetchData() {
             try {
-                const [tareasData, gruposData] = await Promise.all([
+                // El backend ya filtra: tareas solo de los grupos en que estoy inscrito,
+                // entregas solo las mias.
+                const [tareasData, entregasData] = await Promise.all([
                     tareasService.getAll(),
-                    gruposService.getAll(),
+                    entregasService.getAll(),
                 ])
                 const allTareas = Array.isArray(tareasData) ? tareasData : tareasData.results ?? []
-                const grupos = Array.isArray(gruposData) ? gruposData : gruposData.results ?? []
-                const misGrupoIds = grupos.filter(g => (g.alumnos ?? []).includes(user?.id)).map(g => g.id)
-                setTareas(allTareas.filter(t => misGrupoIds.includes(t.grupo)).map(t => ({
-                    ...t,
-                    fechaLimite: t.fechaLimite ?? t.fecha_limite,
-                    materia: t.materia_nombre ?? t.materia ?? '—',
-                    estado: t.estado ?? 'pendiente',
-                })))
+                const entregas = Array.isArray(entregasData) ? entregasData : entregasData.results ?? []
+                const ahora = new Date()
+
+                setTareas(allTareas.map(t => {
+                    const fechaLimite = t.fecha_limite
+                    const misEntregas = entregas.filter(e => String(e.tarea) === String(t.id))
+                    const ultima = misEntregas[misEntregas.length - 1]
+                    const entregada = misEntregas.length > 0
+                    const vencida = !entregada && fechaLimite && new Date(fechaLimite) < ahora
+                    return {
+                        ...t,
+                        fechaLimite,
+                        materia: t.materia_nombre ?? '—',
+                        estado: vencida ? 'vencida' : entregada ? 'entregada' : 'pendiente',
+                        calificacion: ultima?.calificacion ?? null,
+                    }
+                }))
             } catch (err) {
                 console.error('Error cargando tareas:', err)
             } finally {

@@ -44,7 +44,9 @@ export default function AulaVirtualPage() {
                 ])
                 setGrupo(grupoData)
 
-                const pubs = (Array.isArray(pubsData) ? pubsData : pubsData.results ?? []).filter(p => String(p.grupo) === String(id))
+                // Las publicaciones viven a nivel de materia (RF-08): filtramos por la materia del grupo
+                const materiaId = grupoData.materia
+                const pubs = (Array.isArray(pubsData) ? pubsData : pubsData.results ?? []).filter(p => String(p.materia) === String(materiaId))
                 setPublicacionesList(pubs)
 
                 const coms = Array.isArray(comsData) ? comsData : comsData.results ?? []
@@ -96,9 +98,9 @@ export default function AulaVirtualPage() {
                 >
                     <div className="flex items-start justify-between">
                         <div>
-                            <p className="text-white/70 text-xs mb-1">{grupo?.clave ?? '—'}</p>
-                            <h1 className="text-2xl font-bold">{grupo?.materia ?? '—'}</h1>
-                            <p className="text-white/80 text-sm mt-1"><UserCheck size={14} className="inline" /> {grupo?.docente ?? '—'} · {grupo?.alumnos?.length ?? 0} alumnos</p>
+                            <p className="text-white/70 text-xs mb-1">{grupo?.clave ?? grupo?.codigo ?? '—'}</p>
+                            <h1 className="text-2xl font-bold">{grupo?.materia_nombre ?? '—'}</h1>
+                            <p className="text-white/80 text-sm mt-1"><UserCheck size={14} className="inline" /> {grupo?.docente_nombre ?? '—'} · {grupo?.alumnos?.length ?? 0} alumnos</p>
                         </div>
                         <button
                             onClick={() => navigate('/alumno/materias')}
@@ -161,10 +163,10 @@ function CanalTab({ publicaciones, comentarios, inputs, setInputs, onComment, us
                         <div className="ml-13 space-y-2 pl-10">
                             {(comentarios[pub.id] || []).map(c => (
                                 <div key={c.id} className="flex gap-2">
-                                    <Avatar name={c.autor} size="sm" />
+                                    <Avatar name={c.autor_nombre ?? c.autor ?? '—'} size="sm" />
                                     <div className="bg-gray-50 rounded-2xl rounded-tl-none px-3 py-2 flex-1">
-                                        <p className="text-xs font-semibold text-gray-500">{c.autor_nombre ?? c.autor ?? '—'} · {c.fecha ?? c.created_at ?? ''}</p>
-                                        <p className="text-sm text-[#3d3d3d] mt-0.5">{c.texto}</p>
+                                        <p className="text-xs font-semibold text-gray-500">{c.autor_nombre ?? c.autor ?? '—'} · {c.created_at ? new Date(c.created_at).toLocaleString('es-MX') : ''}</p>
+                                        <p className="text-sm text-[#3d3d3d] mt-0.5">{c.contenido ?? c.texto ?? ''}</p>
                                     </div>
                                 </div>
                             ))}
@@ -237,30 +239,40 @@ function MaterialesTab({ materiales }) {
                     <p className="text-sm">El docente aún no ha subido materiales</p>
                 </div>
             )}
-            {materiales.map(m => (
-                <div
-                    key={m.id}
-                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-[#EBE9E1] transition-colors group"
-                >
+            {materiales.map(m => {
+                const titulo = m.titulo ?? m.nombre ?? 'Material'
+                const url = m.archivo_url ?? m.url ?? ''
+                const fecha = m.created_at ? new Date(m.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : (m.fecha ?? '')
+                return (
                     <div
-                        className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                        style={{ background: m.tipo === 'link' ? '#E43D1212' : '#EBE9E1' }}
+                        key={m.id}
+                        className="flex items-center gap-4 p-4 rounded-xl hover:bg-[#EBE9E1] transition-colors group"
                     >
-                        {FILE_ICONS[m.tipo] ?? <FileIcon size={20} />}
+                        <div
+                            className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                            style={{ background: m.tipo === 'link' ? '#E43D1212' : '#EBE9E1' }}
+                        >
+                            {FILE_ICONS[m.tipo] ?? <FileIcon size={20} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-[#3d3d3d] truncate">{titulo}</p>
+                            {m.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate">{m.descripcion}</p>}
+                            <p className="text-xs text-gray-300 mt-0.5">{fecha}</p>
+                        </div>
+                        {url && (
+                            <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                style={{ background: '#E43D1210', color: 'var(--color-primary)' }}
+                            >
+                                {m.tipo === 'link' ? <><ExternalLink size={12} className="inline" /> Abrir</> : <><Download size={12} className="inline" /> Descargar</>}
+                            </a>
+                        )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#3d3d3d] truncate">{m.nombre}</p>
-                        {m.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate">{m.descripcion}</p>}
-                        <p className="text-xs text-gray-300 mt-0.5">{m.fecha}{m.tamaño ? ` · ${m.tamaño}` : ''}</p>
-                    </div>
-                    <button
-                        className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                        style={{ background: '#E43D1210', color: 'var(--color-primary)' }}
-                    >
-                        {m.tipo === 'link' ? <><ExternalLink size={12} className="inline" /> Abrir</> : <><Download size={12} className="inline" /> Descargar</>}
-                    </button>
-                </div>
-            ))}
+                )
+            })}
         </div>
     )
 }

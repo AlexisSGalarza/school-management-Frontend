@@ -53,7 +53,9 @@ export default function PanelGrupoPage() {
                 setMateriales(mats.filter(m => String(m.grupo) === String(id)))
 
                 const pubs = Array.isArray(pubsData) ? pubsData : pubsData.results ?? []
-                const pubsGrupo = pubs.filter(p => String(p.grupo) === String(id))
+                // Las publicaciones viven a nivel de materia (RF-08): filtramos por la materia del grupo
+                const materiaId = grupoData.materia
+                const pubsGrupo = pubs.filter(p => String(p.materia) === String(materiaId))
                 setFeed(pubsGrupo)
 
                 // Load comments for each publication
@@ -137,27 +139,45 @@ export default function PanelGrupoPage() {
     }
 
     async function handleAddMaterial() {
-        if (!matForm.nombre.trim()) { setMatError('El título es requerido'); return }
+        setMatError('')
+        if (!matForm.nombre.trim()) { setMatError('El titulo es requerido'); return }
         if (matForm.tipo === 'link' && !matForm.url.trim()) { setMatError('La URL es requerida'); return }
         if (matForm.tipo !== 'link' && !matFile) { setMatError('Selecciona un archivo'); return }
         try {
-            let archivoUrl
+            let archivoUrl = ''
             if (matFile) {
                 const uploadRes = await uploadService.upload(matFile)
-                archivoUrl = uploadRes.url ?? uploadRes.archivo
+                archivoUrl = uploadRes.url ?? ''
+            } else if (matForm.tipo === 'link') {
+                archivoUrl = matForm.url.trim()
             }
             const nuevo = await materialesService.create({
                 grupo: id,
-                tipo: matForm.tipo,
-                nombre: matForm.nombre.trim(),
+                autor: user?.id,
+                tipo: matForm.tipo === 'link' ? 'link' : 'archivo',
+                titulo: matForm.nombre.trim(),
                 descripcion: matForm.descripcion.trim(),
-                url: matForm.tipo === 'link' ? matForm.url.trim() : archivoUrl,
+                archivo_url: archivoUrl,
             })
             setMateriales(prev => [nuevo, ...prev])
             setMatModalOpen(false)
+            setMatFile(null)
+            setMatForm({ tipo: 'link', nombre: '', descripcion: '', url: '' })
         } catch (err) {
-            setMatError('Error al subir material. Intenta de nuevo.')
+            const msg = err?.response?.data?.error || err?.response?.data?.detail || 'Error al subir material. Intenta de nuevo.'
+            setMatError(msg)
             console.error(err)
+        }
+    }
+
+    async function handleDeleteMaterial(materialId) {
+        if (!confirm('Eliminar este material?')) return
+        try {
+            await materialesService.remove(materialId)
+            setMateriales(prev => prev.filter(x => x.id !== materialId))
+        } catch (err) {
+            console.error('No se pudo eliminar el material', err)
+            alert('No se pudo eliminar el material.')
         }
     }
 
@@ -253,16 +273,14 @@ export default function PanelGrupoPage() {
                                         <div className="flex-1">
                                             <div className="bg-[#EBE9E1] rounded-2xl rounded-tl-none p-4">
                                                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                                                    <p className="text-xs font-bold" style={{ color: 'var(--color-secondary)' }}>{p.autor}</p>
-                                                    {p.esDocente && (
-                                                        <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: 'var(--color-secondary)' }}>Docente</span>
-                                                    )}
-                                                    <p className="text-xs text-gray-400 ml-auto">{p.tiempo}</p>
+                                                    <p className="text-xs font-bold" style={{ color: 'var(--color-secondary)' }}>{p.autor_nombre ?? p.autor ?? 'Docente'}</p>
+                                                    <span className="text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: 'var(--color-secondary)' }}>Docente</span>
+                                                    <p className="text-xs text-gray-400 ml-auto">{p.created_at ? new Date(p.created_at).toLocaleString('es-MX') : (p.tiempo ?? '')}</p>
                                                 </div>
                                                 {p.titulo && (
                                                     <p className="text-sm font-bold text-[#3d3d3d] mb-1">{p.titulo}</p>
                                                 )}
-                                                <p className="text-sm text-gray-600 leading-relaxed">{p.texto}</p>
+                                                <p className="text-sm text-gray-600 leading-relaxed">{p.contenido ?? p.texto ?? ''}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -272,10 +290,10 @@ export default function PanelGrupoPage() {
                                         <div className="ml-12 space-y-2">
                                             {(comentariosMap[p.id] || []).map(c => (
                                                 <div key={c.id} className="flex gap-2">
-                                                    <Avatar name={c.autor} size="sm" />
+                                                    <Avatar name={c.autor_nombre ?? c.autor ?? 'Usuario'} size="sm" />
                                                     <div className="bg-white rounded-2xl rounded-tl-none px-3 py-2 flex-1 shadow-sm">
-                                                        <p className="text-xs font-semibold text-gray-500">{c.autor} · {c.tiempo}</p>
-                                                        <p className="text-sm text-[#3d3d3d] mt-0.5">{c.texto}</p>
+                                                        <p className="text-xs font-semibold text-gray-500">{c.autor_nombre ?? c.autor ?? 'Usuario'} · {c.created_at ? new Date(c.created_at).toLocaleString('es-MX') : ''}</p>
+                                                        <p className="text-sm text-[#3d3d3d] mt-0.5">{c.contenido ?? c.texto ?? ''}</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -503,31 +521,41 @@ export default function PanelGrupoPage() {
                                     </div>
                                 ) : (
                                     <div className="divide-y divide-gray-50">
-                                        {materiales.map(m => (
-                                            <div key={m.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors group">
-                                                <div
-                                                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                                                    style={{ background: m.tipo === 'link' ? '#E43D1212' : '#EBE9E1' }}
-                                                >
-                                                    {FILE_ICONS[m.tipo] ?? <FileIcon size={20} />}
+                                        {materiales.map(m => {
+                                            const titulo = m.titulo ?? m.nombre ?? 'Material'
+                                            const url = m.archivo_url ?? m.url ?? ''
+                                            const fecha = m.created_at ? new Date(m.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : (m.fecha ?? '')
+                                            return (
+                                                <div key={m.id} className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors group">
+                                                    <div
+                                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                                                        style={{ background: m.tipo === 'link' ? '#E43D1212' : '#EBE9E1' }}
+                                                    >
+                                                        {FILE_ICONS[m.tipo] ?? <FileIcon size={20} />}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-semibold text-[#3d3d3d] truncate">{titulo}</p>
+                                                        {m.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate">{m.descripcion}</p>}
+                                                        <p className="text-xs text-gray-300 mt-0.5">{fecha}</p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {url && (
+                                                            <a
+                                                                href={url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                                                                style={{ background: '#E43D1210', color: 'var(--color-primary)' }}
+                                                            >{m.tipo === 'link' ? <><ExternalLink size={12} className="inline" /> Abrir</> : <><Download size={12} className="inline" /> Ver</>}</a>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleDeleteMaterial(m.id)}
+                                                            className="text-xs font-semibold px-3 py-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                                        ><X size={14} /></button>
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-[#3d3d3d] truncate">{m.nombre}</p>
-                                                    {m.descripcion && <p className="text-xs text-gray-400 mt-0.5 truncate">{m.descripcion}</p>}
-                                                    <p className="text-xs text-gray-300 mt-0.5">{m.fecha}{m.tamaño ? ` · ${m.tamaño}` : ''}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        className="text-xs font-semibold px-3 py-1.5 rounded-lg"
-                                                        style={{ background: '#E43D1210', color: 'var(--color-primary)' }}
-                                                    >{m.tipo === 'link' ? <><ExternalLink size={12} className="inline" /> Abrir</> : <><Download size={12} className="inline" /> Ver</>}</button>
-                                                    <button
-                                                        onClick={() => setMateriales(prev => prev.filter(x => x.id !== m.id))}
-                                                        className="text-xs font-semibold px-3 py-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                                                    ><X size={14} /></button>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            )
+                                        })}
                                     </div>
                                 )}
                             </div>

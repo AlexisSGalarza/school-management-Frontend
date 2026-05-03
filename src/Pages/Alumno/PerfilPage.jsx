@@ -10,6 +10,7 @@ import { useAuth } from '../../Context/AuthContext'
 import { gruposService } from '../../Services/gruposService'
 import { tareasService } from '../../Services/tareasService'
 import { entregasService } from '../../Services/entregasService'
+import { usersService } from '../../Services/usersService'
 
 export default function PerfilPage() {
     const { user } = useAuth()
@@ -19,6 +20,7 @@ export default function PerfilPage() {
     useEffect(() => {
         async function load() {
             try {
+                // El backend filtra: solo recibo mis grupos/tareas/entregas
                 const [grupos, tareas, entregas] = await Promise.all([
                     gruposService.getAll(),
                     tareasService.getAll(),
@@ -27,26 +29,26 @@ export default function PerfilPage() {
                 const gruposList = Array.isArray(grupos) ? grupos : grupos.results ?? []
                 const tareasList = Array.isArray(tareas) ? tareas : tareas.results ?? []
                 const entregasList = Array.isArray(entregas) ? entregas : entregas.results ?? []
-                const misEntregas = entregasList.filter(e => e.alumno === user?.id)
-                const tareasEntregadas = new Set(misEntregas.map(e => e.tarea))
+                const misGrupos = gruposList.filter(g => (g.alumnos ?? []).includes(user?.id))
+                const tareasEntregadas = new Set(entregasList.map(e => e.tarea))
                 const pendientes = tareasList.filter(t => !tareasEntregadas.has(t.id))
                 setResumenAcademico([
-                    { label: 'Materias inscritas', value: gruposList.length },
+                    { label: 'Materias inscritas', value: misGrupos.length },
                     { label: 'Tareas entregadas', value: tareasEntregadas.size },
                     { label: 'Tareas pendientes', value: pendientes.length },
                 ])
-            } catch { /* ignore */ }
+            } catch (err) { console.error('Error cargando resumen:', err) }
         }
-        load()
+        if (user?.id) load()
     }, [user])
 
-    const nombre = user?.nombre ?? user?.first_name ?? ''
+    const nombre = user?.nombre || user?.email || 'Alumno'
     const email = user?.email ?? ''
-    const matricula = user?.matricula ?? user?.username ?? ''
-    const rol = user?.rol ?? 'Alumno'
-    const ciclo = user?.ciclo ?? ''
-    const createdAt = user?.date_joined ?? user?.createdAt ?? ''
-    const activo = user?.is_active ?? user?.activo ?? true
+    const matricula = user?.matricula ?? '—'
+    const rol = user?.rol ? user.rol.charAt(0).toUpperCase() + user.rol.slice(1) : 'Alumno'
+    const ciclo = ''
+    const createdAt = user?.created_at ?? ''
+    const activo = user?.activo ?? true
     const [pwForm, setPwForm] = useState({ actual: '', nueva: '', confirmar: '' })
     const [pwErrors, setPwErrors] = useState({})
     const [pwSuccess, setPwSuccess] = useState(false)
@@ -66,14 +68,18 @@ export default function PerfilPage() {
         return errs
     }
 
-    function handlePwSubmit(e) {
+    async function handlePwSubmit(e) {
         e.preventDefault()
         const errs = validatePw()
         if (Object.keys(errs).length) { setPwErrors(errs); return }
-        // Aquí irá la llamada al backend
-        setPwSuccess(true)
-        setEditingPassword(false)
-        setPwForm({ actual: '', nueva: '', confirmar: '' })
+        try {
+            await usersService.update(user.id, { password: pwForm.nueva })
+            setPwSuccess(true)
+            setEditingPassword(false)
+            setPwForm({ actual: '', nueva: '', confirmar: '' })
+        } catch (err) {
+            setPwErrors({ nueva: 'No se pudo actualizar la contrasena' })
+        }
     }
 
     function closePwModal() {

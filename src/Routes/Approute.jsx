@@ -3,7 +3,7 @@ import { useAuth } from "../Context/AuthContext"
 import AuthPage from "../Pages/AuthPage"
 import { DashboardPage, MateriasPage, AulaVirtualPage, TareasPage, DetalleTareaPage, PerfilPage, BoletaPage } from "../Pages/Alumno"
 import { DashboardMaestroPage, MisGruposPage, PanelGrupoPage, CreadorTareaPage, CentroCalificacionPage, PerfilMaestroPage, MateriasDocentePage } from "../Pages/Maestro"
-import { DashboardAdminPage, UsuariosPage, EstructuraAcademicaPage, ReportesPage, PerfilAdminPage } from "../Pages/Admin"
+import { DashboardAdminPage, UsuariosPage, EstructuraAcademicaPage, ReportesPage, PerfilAdminPage, MonitoreoPage } from "../Pages/Admin"
 
 function PrivateRoute({ children }) {
     const { user } = useAuth()
@@ -41,6 +41,7 @@ const routes = [
     { path: "/admin/usuarios", element: <UsuariosPage />, private: true, role: "admin" },
     { path: "/admin/estructura", element: <EstructuraAcademicaPage />, private: true, role: "admin" },
     { path: "/admin/reportes", element: <ReportesPage />, private: true, role: "admin" },
+    { path: "/admin/monitoreo", element: <MonitoreoPage />, private: true, role: "admin" },
     { path: "/admin/perfil", element: <PerfilAdminPage />, private: true, role: "admin" },
 ]
 

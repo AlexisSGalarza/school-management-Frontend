@@ -8,22 +8,31 @@ import FormField from '../../Components/UI/FormField'
 import { usersService } from '../../Services/usersService'
 import { useToast } from '../../Context/ToastContext'
 
-// Mapa de variantes de Badge por rol
+// Backend usa roles en minuscula ('alumno','docente','admin'). Para mostrar
+// los capitalizamos con ROL_LABEL.
 const ROL_BADGE = {
-    Alumno: 'accent',
-    Docente: 'secondary',
-    Admin: 'primary',
+    alumno: 'accent',
+    docente: 'secondary',
+    admin: 'primary',
 }
+
+const ROL_LABEL = { alumno: 'Alumno', docente: 'Docente', admin: 'Admin' }
 
 const ROL_OPTIONS = [
     { value: '', label: 'Todos los roles' },
-    { value: 'Alumno', label: 'Alumno' },
-    { value: 'Docente', label: 'Docente' },
-    { value: 'Admin', label: 'Admin' },
+    { value: 'alumno', label: 'Alumno' },
+    { value: 'docente', label: 'Docente' },
+    { value: 'admin', label: 'Admin' },
 ]
 
-const EMPTY_FORM = { nombre: '', email: '', matricula: '', rol: 'Alumno', password: '' }
-const EMPTY_EDIT_FORM = { nombre: '', email: '', matricula: '', rol: 'Alumno' }
+const ROL_FORM_OPTIONS = [
+    { value: 'alumno', label: 'Alumno' },
+    { value: 'docente', label: 'Docente' },
+    { value: 'admin', label: 'Admin' },
+]
+
+const EMPTY_FORM = { nombre: '', email: '', matricula: '', rol: 'alumno', password: '' }
+const EMPTY_EDIT_FORM = { nombre: '', email: '', matricula: '', rol: 'alumno' }
 
 const MATRICULA_RE = /^\d+$/
 
@@ -73,7 +82,10 @@ export default function UsuariosPage() {
     const filtered = useMemo(() => {
         const q = search.toLowerCase()
         return users.filter(u => {
-            const matchSearch = !q || u.nombre.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.matricula.toLowerCase().includes(q)
+            const nombre = (u.nombre ?? '').toLowerCase()
+            const email = (u.email ?? '').toLowerCase()
+            const matricula = String(u.matricula ?? '').toLowerCase()
+            const matchSearch = !q || nombre.includes(q) || email.includes(q) || matricula.includes(q)
             const matchRol = !rolFiltro || u.rol === rolFiltro
             return matchSearch && matchRol
         })
@@ -95,10 +107,11 @@ export default function UsuariosPage() {
         try {
             const newUser = await usersService.create({
                 nombre: form.nombre.trim(),
-                matricula: form.matricula.trim(),
+                matricula: parseInt(form.matricula.trim(), 10),
                 email: form.email.trim(),
                 rol: form.rol,
                 password: form.password,
+                activo: true,
             })
             setUsers(prev => [newUser, ...prev])
             setModal(false)
@@ -109,7 +122,11 @@ export default function UsuariosPage() {
             setRolFiltro('')
             addToast(`Usuario "${newUser.nombre}" registrado`)
         } catch (err) {
-            addToast('Error al registrar usuario', 'error')
+            const data = err?.response?.data
+            const msg = typeof data === 'string'
+                ? data
+                : data?.email?.[0] || data?.matricula?.[0] || data?.password?.[0] || data?.rol?.[0] || data?.detail || 'Error al registrar usuario'
+            addToast(msg, 'error')
         }
     }
 
@@ -133,14 +150,16 @@ export default function UsuariosPage() {
             const updated = await usersService.update(editUser.id, {
                 nombre: editForm.nombre.trim(),
                 email: editForm.email.trim(),
-                matricula: editForm.matricula.trim(),
+                matricula: parseInt(editForm.matricula.trim(), 10),
                 rol: editForm.rol,
             })
             setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...updated } : u))
             addToast(`Usuario "${editForm.nombre.trim()}" actualizado`)
             setEditUser(null)
         } catch (err) {
-            addToast('Error al actualizar usuario', 'error')
+            const data = err?.response?.data
+            const msg = data?.email?.[0] || data?.matricula?.[0] || data?.detail || 'Error al actualizar usuario'
+            addToast(msg, 'error')
         }
     }
 
@@ -227,7 +246,7 @@ export default function UsuariosPage() {
                                         </td>
                                         <td className="py-3.5 px-3 hidden sm:table-cell text-gray-500 truncate max-w-[160px]">{u.email}</td>
                                         <td className="py-3.5 px-3">
-                                            <Badge variant={ROL_BADGE[u.rol] ?? 'muted'}>{u.rol}</Badge>
+                                            <Badge variant={ROL_BADGE[u.rol] ?? 'muted'}>{ROL_LABEL[u.rol] ?? u.rol}</Badge>
                                         </td>
                                         <td className="py-3.5 px-3">
                                             <Badge variant={u.activo ? 'success' : 'muted'}>
@@ -314,11 +333,7 @@ export default function UsuariosPage() {
                             value={form.rol}
                             onChange={handleChange}
                             type="select"
-                            options={[
-                                { value: 'Alumno', label: 'Alumno' },
-                                { value: 'Docente', label: 'Docente' },
-                                { value: 'Admin', label: 'Admin' },
-                            ]}
+                            options={ROL_FORM_OPTIONS}
                         />
                     </div>
                     <FormField label="Email institucional" name="email" value={form.email} onChange={handleChange} error={errors.email} type="email" placeholder="usuario@escuela.edu.mx" />
@@ -357,11 +372,7 @@ export default function UsuariosPage() {
                             value={editForm.rol}
                             onChange={handleEditChange}
                             type="select"
-                            options={[
-                                { value: 'Alumno', label: 'Alumno' },
-                                { value: 'Docente', label: 'Docente' },
-                                { value: 'Admin', label: 'Admin' },
-                            ]}
+                            options={ROL_FORM_OPTIONS}
                         />
                     </div>
                     <FormField label="Email institucional" name="email" value={editForm.email} onChange={handleEditChange} error={editErrors.email} type="email" placeholder="usuario@escuela.edu.mx" />

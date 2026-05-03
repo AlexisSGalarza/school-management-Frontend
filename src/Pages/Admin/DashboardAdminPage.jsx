@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { GraduationCap, UsersRound, BookOpen, School, Plus, BarChart3, User, Calendar, UserPlus } from 'lucide-react'
 import AdminShell from '../../Components/Layout/AdminShell'
-import StatCard from '../../Components/UI/StatCard'
 import { usersService } from '../../Services/usersService'
 import { gruposService } from '../../Services/gruposService'
 import { materiasService } from '../../Services/materiasService'
 import { ciclosService } from '../../Services/ciclosService'
+import { inscripcionesService } from '../../Services/inscripcionesService'
 import { useNavigate } from 'react-router-dom'
 
 const acciones = [
@@ -14,13 +14,15 @@ const acciones = [
     { label: 'Generar Reporte', icon: <BarChart3 size={18} />, to: '/admin/reportes', color: '#EFB11D' },
 ]
 
-const ACTIVIDAD = [
-    { id: 1, icon: <UserPlus size={16} />, texto: 'Nueva alumna registrada: Ana Torres (A2024015)', tipo: 'success', tiempo: 'Hace 12 min' },
-    { id: 2, icon: <School size={16} />, texto: 'Grupo G44A creado — Desarrollo Web Avanzado', tipo: 'success', tiempo: 'Hace 1 h' },
-    { id: 3, icon: <GraduationCap size={16} />, texto: '3 alumnos inscritos en G41A — Ing. Marcos Pérez', tipo: 'success', tiempo: 'Hace 2 h' },
-    { id: 4, icon: <Calendar size={16} />, texto: 'Ciclo "Enero – Junio 2026" marcado como activo', tipo: 'info', tiempo: 'Hace 3 h' },
-    { id: 5, icon: <BarChart3 size={16} />, texto: 'Reporte de asistencia generado por Patricia Montes', tipo: 'info', tiempo: 'Ayer' },
-]
+function tiempoRelativo(iso) {
+    if (!iso) return ''
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000
+    if (diff < 60) return 'Hace un momento'
+    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} h`
+    if (diff < 604800) return `Hace ${Math.floor(diff / 86400)} d`
+    return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+}
 
 export default function DashboardAdminPage() {
     const navigate = useNavigate()
@@ -28,22 +30,86 @@ export default function DashboardAdminPage() {
     const [grupos, setGrupos] = useState([])
     const [materias, setMaterias] = useState([])
     const [cicloActivo, setCicloActivo] = useState({ nombre: '—' })
+    const [inscripciones, setInscripciones] = useState([])
+    const [actividad, setActividad] = useState([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         async function fetchData() {
             try {
-                const [u, g, m, c] = await Promise.all([
+                const [u, g, m, c, ins] = await Promise.all([
                     usersService.getAll(),
                     gruposService.getAll(),
                     materiasService.getAll(),
                     ciclosService.getAll(),
+                    inscripcionesService.getAll(),
                 ])
-                setUsers(Array.isArray(u) ? u : u.results ?? [])
-                setGrupos(Array.isArray(g) ? g : g.results ?? [])
-                setMaterias(Array.isArray(m) ? m : m.results ?? [])
-                const ciclos = Array.isArray(c) ? c : c.results ?? []
-                setCicloActivo(ciclos.find(x => x.activo) ?? ciclos[0] ?? { nombre: '—' })
+                const userList = Array.isArray(u) ? u : u.results ?? []
+                const grupoList = Array.isArray(g) ? g : g.results ?? []
+                const materiaList = Array.isArray(m) ? m : m.results ?? []
+                const cicloList = Array.isArray(c) ? c : c.results ?? []
+                const insList = Array.isArray(ins) ? ins : ins.results ?? []
+
+                setUsers(userList)
+                setGrupos(grupoList)
+                setMaterias(materiaList)
+                setInscripciones(insList)
+
+                const activo = cicloList.find(x => x.activo) ?? cicloList[0] ?? { nombre: '—' }
+                setCicloActivo(activo)
+
+                // Construir actividad reciente desde datos reales
+                const items = []
+
+                // Usuarios recientes
+                ;[...userList]
+                    .filter(u => u.created_at)
+                    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                    .slice(0, 5)
+                    .forEach(u => {
+                        const rolLabel = u.rol === 'alumno' || u.rol === 'Alumno' ? 'alumno/a' :
+                                         u.rol === 'docente' || u.rol === 'Docente' ? 'docente' : 'administrador/a'
+                        items.push({
+                            id: `user-${u.id}`,
+                            icon: <UserPlus size={16} />,
+                            texto: `Nuevo ${rolLabel} registrado: ${u.nombre || u.email}${u.matricula ? ` (${u.matricula})` : ''}`,
+                            tipo: 'success',
+                            tiempo: tiempoRelativo(u.created_at),
+                            date: new Date(u.created_at),
+                        })
+                    })
+
+                // Inscripciones recientes
+                ;[...insList]
+                    .filter(i => i.fecha_inscripcion)
+                    .sort((a, b) => new Date(b.fecha_inscripcion) - new Date(a.fecha_inscripcion))
+                    .slice(0, 3)
+                    .forEach(i => {
+                        items.push({
+                            id: `ins-${i.id}`,
+                            icon: <GraduationCap size={16} />,
+                            texto: `${i.alumno_nombre || 'Alumno'} inscrito en grupo — ${i.materia_nombre || 'Materia'}`,
+                            tipo: 'success',
+                            tiempo: tiempoRelativo(i.fecha_inscripcion),
+                            date: new Date(i.fecha_inscripcion),
+                        })
+                    })
+
+                // Ciclo activo marcado
+                if (activo && activo.id) {
+                    items.push({
+                        id: `ciclo-${activo.id}`,
+                        icon: <Calendar size={16} />,
+                        texto: `Ciclo "${activo.nombre}" marcado como activo`,
+                        tipo: 'info',
+                        tiempo: '',
+                        date: new Date(0),
+                    })
+                }
+
+                // Ordenar por fecha descendente
+                items.sort((a, b) => b.date - a.date)
+                setActividad(items.slice(0, 8))
             } catch (err) {
                 console.error('Error cargando dashboard:', err)
             } finally {
@@ -53,26 +119,31 @@ export default function DashboardAdminPage() {
         fetchData()
     }, [])
 
+    const cicloId = cicloActivo?.id
+    const materiasDelCiclo = materias.filter(m => m.ciclo === cicloId)
+    const gruposDelCiclo = grupos.filter(g => g.cicloId === cicloId || g.ciclo === cicloId)
+    const totalInscritos = gruposDelCiclo.reduce((a, g) => a + (g.alumnos?.length ?? 0), 0)
+
     const stats = [
         {
             label: 'Alumnos Activos',
-            value: String(users.filter(u => u.rol === 'Alumno' && u.activo).length),
+            value: String(users.filter(u => (u.rol === 'Alumno' || u.rol === 'alumno') && u.activo).length),
             icon: <GraduationCap size={20} />,
             iconBg: '#FFA2B618',
-            change: '+3 este ciclo',
+            change: `${users.filter(u => (u.rol === 'Alumno' || u.rol === 'alumno')).length} totales`,
             up: true,
         },
         {
             label: 'Docentes Activos',
-            value: String(users.filter(u => u.rol === 'Docente' && u.activo).length),
+            value: String(users.filter(u => (u.rol === 'Docente' || u.rol === 'docente') && u.activo).length),
             icon: <UsersRound size={20} />,
             iconBg: '#D6536D18',
-            change: 'Sin cambios',
+            change: `${users.filter(u => (u.rol === 'Docente' || u.rol === 'docente')).length} totales`,
             up: null,
         },
         {
             label: 'Materias en Curso',
-            value: String(materias.filter(m => m.cicloId === cicloActivo.id).length),
+            value: String(materiasDelCiclo.length),
             icon: <BookOpen size={20} />,
             iconBg: '#E43D1218',
             change: cicloActivo.nombre,
@@ -80,10 +151,10 @@ export default function DashboardAdminPage() {
         },
         {
             label: 'Grupos Activos',
-            value: String(grupos.filter(g => g.cicloId === cicloActivo.id).length),
+            value: String(gruposDelCiclo.length),
             icon: <School size={20} />,
             iconBg: '#EFB11D18',
-            change: `${grupos.reduce((a, g) => a + (g.alumnos?.length ?? 0), 0)} alumnos inscritos`,
+            change: `${totalInscritos} alumnos inscritos`,
             up: true,
         },
     ]
@@ -145,9 +216,9 @@ export default function DashboardAdminPage() {
                     {/* Distribución de usuarios */}
                     <div className="bg-white rounded-2xl p-5 shadow-sm">
                         <p className="text-sm font-bold text-[#3d3d3d] mb-4">Distribución de Usuarios</p>
-                        <RolBar rol="Alumnos" count={users.filter(u => u.rol === 'Alumno').length} total={users.length} color="#FFA2B6" />
-                        <RolBar rol="Docentes" count={users.filter(u => u.rol === 'Docente').length} total={users.length} color="#D6536D" />
-                        <RolBar rol="Admins" count={users.filter(u => u.rol === 'Admin').length} total={users.length} color="#E43D12" />
+                        <RolBar rol="Alumnos" count={users.filter(u => u.rol === 'Alumno' || u.rol === 'alumno').length} total={users.length} color="#FFA2B6" />
+                        <RolBar rol="Docentes" count={users.filter(u => u.rol === 'Docente' || u.rol === 'docente').length} total={users.length} color="#D6536D" />
+                        <RolBar rol="Admins" count={users.filter(u => u.rol === 'Admin' || u.rol === 'admin').length} total={users.length} color="#E43D12" />
                         <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-xs text-gray-400">
                             <span>Total usuarios</span>
                             <span className="font-bold text-[#3d3d3d]">{users.length}</span>
@@ -172,16 +243,16 @@ export default function DashboardAdminPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {grupos.filter(g => g.cicloId === cicloActivo.id).map(g => (
+                                {gruposDelCiclo.map(g => (
                                     <tr key={g.id}>
                                         <td className="py-2.5 pr-4">
-                                            <span className="font-bold text-[#3d3d3d]">{g.clave}</span>
+                                            <span className="font-bold text-[#3d3d3d]">{g.clave || g.nombre}</span>
                                         </td>
-                                        <td className="py-2.5 pr-4 text-gray-500 max-w-[180px] truncate">{g.materia}</td>
-                                        <td className="py-2.5 pr-4 text-gray-500 hidden sm:table-cell">{g.docente}</td>
+                                        <td className="py-2.5 pr-4 text-gray-500 max-w-[180px] truncate">{g.materia_nombre || g.materia}</td>
+                                        <td className="py-2.5 pr-4 text-gray-500 hidden sm:table-cell">{g.docente_nombre || g.docente}</td>
                                         <td className="py-2.5">
                                             <span className="text-xs font-bold" style={{ color: 'var(--color-primary)' }}>
-                                                {g.alumnos?.length ?? 0}/{g.capacidad}
+                                                {g.alumnos?.length ?? 0}
                                             </span>
                                         </td>
                                     </tr>
@@ -195,7 +266,10 @@ export default function DashboardAdminPage() {
                 <div className="bg-white rounded-2xl p-5 shadow-sm">
                     <p className="text-sm font-bold text-[#3d3d3d] mb-4">Actividad Reciente</p>
                     <div className="space-y-1">
-                        {ACTIVIDAD.map((a, idx) => (
+                        {actividad.length === 0 && !loading && (
+                            <p className="text-sm text-gray-400 py-4 text-center">No hay actividad reciente</p>
+                        )}
+                        {actividad.map((a, idx) => (
                             <div key={a.id} className="flex items-start gap-3 py-2.5 border-b border-gray-50 last:border-0">
                                 <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
                                     style={{ background: idx === 0 ? '#E43D1210' : '#EBE9E1' }}>
@@ -219,7 +293,7 @@ export default function DashboardAdminPage() {
 }
 
 function RolBar({ rol, count, total, color }) {
-    const pct = Math.round((count / total) * 100)
+    const pct = total > 0 ? Math.round((count / total) * 100) : 0
     return (
         <div className="mb-3">
             <div className="flex justify-between text-xs mb-1">

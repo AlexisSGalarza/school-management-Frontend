@@ -10,6 +10,7 @@ import { useAuth } from '../../Context/AuthContext'
 import { gruposService } from '../../Services/gruposService'
 import { inscripcionesService } from '../../Services/inscripcionesService'
 import { tareasService } from '../../Services/tareasService'
+import { usersService } from '../../Services/usersService'
 
 export default function PerfilMaestroPage() {
     const { user } = useAuth()
@@ -19,17 +20,18 @@ export default function PerfilMaestroPage() {
     const [pwErrors, setPwErrors] = useState({})
     const [pwSuccess, setPwSuccess] = useState(false)
 
-    const nombre = user?.nombre ?? user?.first_name ?? ''
+    const nombre = user?.nombre || user?.email || 'Docente'
     const email = user?.email ?? ''
-    const empleado = user?.empleado ?? user?.matricula ?? user?.username ?? ''
-    const rol = user?.rol ?? 'Docente'
-    const ciclo = user?.ciclo ?? ''
-    const createdAt = user?.date_joined ?? user?.createdAt ?? ''
-    const activo = user?.is_active ?? user?.activo ?? true
+    const empleado = user?.matricula ?? '—'
+    const rol = user?.rol ? user.rol.charAt(0).toUpperCase() + user.rol.slice(1) : 'Docente'
+    const ciclo = ''
+    const createdAt = user?.created_at ?? ''
+    const activo = user?.activo ?? true
 
     useEffect(() => {
         async function load() {
             try {
+                // Backend ya filtra: solo recibo grupos/inscripciones/tareas que me corresponden
                 const [grupos, inscripciones, tareas] = await Promise.all([
                     gruposService.getAll(),
                     inscripcionesService.getAll(),
@@ -39,17 +41,15 @@ export default function PerfilMaestroPage() {
                 const inscList = Array.isArray(inscripciones) ? inscripciones : inscripciones.results ?? []
                 const tareasList = Array.isArray(tareas) ? tareas : tareas.results ?? []
                 const misGrupos = gruposList.filter(g => g.docente === user?.id)
-                const misGrupoIds = new Set(misGrupos.map(g => g.id))
-                const alumnosUnicos = new Set(inscList.filter(i => misGrupoIds.has(i.grupo)).map(i => i.alumno))
-                const misTareas = tareasList.filter(t => misGrupoIds.has(t.grupo))
+                const alumnosUnicos = new Set(inscList.map(i => i.alumno))
                 setResumen([
                     { label: 'Grupos activos', value: misGrupos.length },
                     { label: 'Alumnos totales', value: alumnosUnicos.size },
-                    { label: 'Tareas publicadas', value: misTareas.length },
+                    { label: 'Tareas publicadas', value: tareasList.length },
                 ])
-            } catch { /* ignore */ }
+            } catch (err) { console.error('Error cargando resumen:', err) }
         }
-        load()
+        if (user?.id) load()
     }, [user])
 
     function closePwModal() {
@@ -72,12 +72,17 @@ export default function PerfilMaestroPage() {
         return errs
     }
 
-    function handlePwSubmit(e) {
+    async function handlePwSubmit(e) {
         e.preventDefault()
         const errs = validatePw()
         if (Object.keys(errs).length) { setPwErrors(errs); return }
-        setPwSuccess(true)
-        closePwModal()
+        try {
+            await usersService.update(user.id, { password: pwForm.nueva })
+            setPwSuccess(true)
+            closePwModal()
+        } catch (err) {
+            setPwErrors({ nueva: 'No se pudo actualizar la contrasena' })
+        }
     }
 
     return (

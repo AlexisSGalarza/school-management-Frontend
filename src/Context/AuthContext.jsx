@@ -1,27 +1,37 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import { authService } from '../Services/authService';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(() => {
-        const token = localStorage.getItem('access_token');
-        if (!token) return null;
         try {
-            return JSON.parse(localStorage.getItem('user'));
+            const cached = localStorage.getItem('user');
+            return cached ? JSON.parse(cached) : null;
         } catch {
             return null;
         }
     });
 
-    async function login(username, password) {
+    // Si tenemos token pero perdimos el user en cache (o viene desactualizado),
+    // refrescamos el perfil al montar.
+    useEffect(() => {
+        const token = localStorage.getItem('access_token');
+        if (token && !user) {
+            authService.fetchMe()
+                .then(u => { if (u) { setUser(u); localStorage.setItem('user', JSON.stringify(u)) } })
+                .catch(() => { /* token invalido, lo deja deslogueado */ });
+        }
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    async function login(email, password) {
         try {
-            const data = await authService.login(username, password);
-            localStorage.setItem('access_token', data.access);
-            localStorage.setItem('refresh_token', data.refresh);
-            localStorage.setItem('user', JSON.stringify(data));
-            setUser(data);
-            return data;
+            const { access, refresh, user: u } = await authService.login(email, password);
+            localStorage.setItem('access_token', access);
+            localStorage.setItem('refresh_token', refresh);
+            localStorage.setItem('user', JSON.stringify(u));
+            setUser(u);
+            return u;
         } catch (err) {
             const msg = err.response?.data?.detail ?? 'Credenciales incorrectas';
             throw new Error(msg);
@@ -33,8 +43,17 @@ export function AuthProvider({ children }) {
         setUser(null);
     }
 
+    async function refreshUser() {
+        const u = await authService.fetchMe();
+        if (u) {
+            setUser(u);
+            localStorage.setItem('user', JSON.stringify(u));
+        }
+        return u;
+    }
+
     return (
-        <AuthContext.Provider value={{ user, login, logout }}>
+        <AuthContext.Provider value={{ user, login, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

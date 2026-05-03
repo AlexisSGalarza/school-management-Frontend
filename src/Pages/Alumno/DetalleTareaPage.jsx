@@ -84,26 +84,35 @@ export default function DetalleTareaPage() {
     async function handleUpload() {
         if (!selectedFile && !videoLink.trim()) return
         setUploading(true)
+        setFileError('')
         try {
-            let archivoUrl
+            let archivoUrl = ''
+            let nombreArchivo = ''
+            let tamanoBytes = 0
             if (selectedFile) {
                 const uploadRes = await uploadService.upload(selectedFile)
-                archivoUrl = uploadRes.url ?? uploadRes.archivo
+                archivoUrl = uploadRes.url ?? ''
+                nombreArchivo = uploadRes.nombre_archivo ?? selectedFile.name
+                tamanoBytes = uploadRes.tamano_bytes ?? selectedFile.size
             }
             await entregasService.create({
                 tarea: id,
-                archivo: archivoUrl,
-                enlace: videoLink.trim() || undefined,
+                alumno: user?.id,
+                archivo_url: archivoUrl,
+                video_url: videoLink.trim(),
+                nombre_archivo: nombreArchivo || (videoLink.trim() ? 'Enlace de video' : ''),
+                tamano_bytes: tamanoBytes,
+                comentario: '',
             })
             setUploadSuccess(true)
             setSelectedFile(null)
             setVideoLink('')
-            // Refresh historial
             const entregasData = await entregasService.getAll()
             const entregas = Array.isArray(entregasData) ? entregasData : entregasData.results ?? []
             setHistorial(entregas.filter(e => String(e.tarea) === String(id) && e.alumno === user?.id))
         } catch (err) {
-            setFileError('Error al subir la entrega. Intenta de nuevo.')
+            const msg = err?.response?.data?.error || err?.response?.data?.detail || 'Error al subir la entrega. Intenta de nuevo.'
+            setFileError(msg)
             console.error(err)
         } finally {
             setUploading(false)

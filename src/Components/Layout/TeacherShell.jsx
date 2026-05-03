@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { LayoutDashboard, UsersRound, BookOpen, PenLine, User, Hand, LogOut } from 'lucide-react'
 import Avatar from '../UI/Avatar'
+import { useAuth } from '../../Context/AuthContext'
+import { useCicloActivo } from '../../Hooks/useCicloActivo'
+import { entregasService } from '../../Services/entregasService'
 
 const navItems = [
     { to: '/maestro/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -11,25 +14,62 @@ const navItems = [
     { to: '/maestro/perfil', icon: User, label: 'Mi Perfil' },
 ]
 
-const TEACHER = { nombre: 'Dr. Carlos Martínez', ciclo: 'Enero – Junio 2026', empleado: 'E00042' }
-
-const AVISOS = [
-    { id: 1, texto: 'Nuevo comentario en Desarrollo Web', materia: 'Desarrollo Web', tiempo: 'Hace 1h', leido: false },
-    { id: 2, texto: 'Entrega recibida – Física II', materia: 'Física II', tiempo: 'Hace 3h', leido: false },
-    { id: 3, texto: 'Recordatorio: fecha límite mañana', materia: 'Cálculo', tiempo: 'Ayer', leido: true },
-]
+function tiempoRelativo(iso) {
+    if (!iso) return ''
+    const diff = (Date.now() - new Date(iso).getTime()) / 1000
+    if (diff < 60) return 'Hace un momento'
+    if (diff < 3600) return `Hace ${Math.floor(diff / 60)} min`
+    if (diff < 86400) return `Hace ${Math.floor(diff / 3600)} h`
+    if (diff < 604800) return `Hace ${Math.floor(diff / 86400)} d`
+    return new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })
+}
 
 export default function TeacherShell({ children }) {
     const navigate = useNavigate()
     const location = useLocation()
+    const { user, logout } = useAuth()
+    const cicloActivo = useCicloActivo()
     const [mobileOpen, setMobileOpen] = useState(false)
     const [bellOpen, setBellOpen] = useState(false)
     const [userMenuOpen, setUserMenuOpen] = useState(false)
     const [logoutModal, setLogoutModal] = useState(false)
-    const [avisos, setAvisos] = useState(AVISOS)
+    const [avisos, setAvisos] = useState([])
+    const [readIds, setReadIds] = useState(() => new Set(JSON.parse(localStorage.getItem('avisos_leidos_docente') || '[]')))
+
+    const nombreUsuario = user?.nombre || user?.email || 'Docente'
+    const cicloNombre = cicloActivo?.nombre || 'Sin ciclo activo'
+    const empleado = user?.matricula ?? '—'
 
     const bellRef = useRef(null)
     const userRef = useRef(null)
+
+    // Avisos del docente: nuevas entregas pendientes de calificar
+    useEffect(() => {
+        let cancelled = false
+        entregasService.getAll()
+            .then(data => {
+                if (cancelled) return
+                const list = Array.isArray(data) ? data : data.results ?? []
+                const pendientes = list
+                    .filter(e => e.calificacion === null || e.calificacion === undefined)
+                    .sort((a, b) => new Date(b.fecha_entrega) - new Date(a.fecha_entrega))
+                    .slice(0, 8)
+                setAvisos(pendientes.map(e => ({
+                    id: e.id,
+                    texto: `Entrega de ${e.alumno_nombre || 'alumno'} en ${e.tarea_titulo || 'tarea'}`,
+                    materia: e.tarea_titulo || 'Tarea',
+                    tiempo: tiempoRelativo(e.fecha_entrega),
+                    leido: readIds.has(e.id),
+                })))
+            })
+            .catch(() => { if (!cancelled) setAvisos([]) })
+        return () => { cancelled = true }
+    }, [readIds])
+
+    function handleLogout() {
+        logout()
+        navigate('/auth')
+    }
 
     useEffect(() => {
         function handle(e) {
@@ -43,6 +83,9 @@ export default function TeacherShell({ children }) {
     const unread = avisos.filter(a => !a.leido).length
 
     function markAllRead() {
+        const allIds = new Set([...readIds, ...avisos.map(a => a.id)])
+        setReadIds(allIds)
+        localStorage.setItem('avisos_leidos_docente', JSON.stringify([...allIds]))
         setAvisos(prev => prev.map(a => ({ ...a, leido: true })))
     }
 
@@ -54,7 +97,7 @@ export default function TeacherShell({ children }) {
                 <div className="px-5 py-5">
                     <BrandLogo />
                 </div>
-                <SidebarContent navigate={navigate} />
+                <SidebarContent navigate={navigate} nombre={nombreUsuario} />
             </aside>
 
             {/* ── DRAWER MOBILE ── */}
@@ -66,7 +109,7 @@ export default function TeacherShell({ children }) {
                             <BrandLogo />
                             <button onClick={() => setMobileOpen(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#EBE9E1] hover:text-[#E43D12] transition-all">✕</button>
                         </div>
-                        <SidebarContent navigate={navigate} onNavClick={() => setMobileOpen(false)} />
+                        <SidebarContent navigate={navigate} nombre={nombreUsuario} onNavClick={() => setMobileOpen(false)} />
                     </aside>
                 </div>
             )}
@@ -89,7 +132,7 @@ export default function TeacherShell({ children }) {
                                 className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
                             >Cancelar</button>
                             <button
-                                onClick={() => navigate('/')}
+                                onClick={handleLogout}
                                 className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
                                 style={{ backgroundColor: 'var(--color-primary)' }}
                             >Cerrar sesión</button>
@@ -118,7 +161,7 @@ export default function TeacherShell({ children }) {
                         <div className="hidden sm:block">
                             <div className="flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--color-primary)' }} />
-                                <p className="text-sm font-semibold text-[#3d3d3d]">{TEACHER.ciclo}</p>
+                                <p className="text-sm font-semibold text-[#3d3d3d]">{cicloNombre}</p>
                             </div>
                             <p className="text-xs text-gray-400 pl-4">Ciclo activo</p>
                         </div>
@@ -187,9 +230,9 @@ export default function TeacherShell({ children }) {
                                 onClick={() => { setUserMenuOpen(p => !p); setBellOpen(false) }}
                                 className={`flex items-center gap-2 rounded-xl pl-1 pr-3 py-1 transition-all duration-200 ${userMenuOpen ? 'bg-[#EBE9E1]' : 'hover:bg-[#EBE9E1]'}`}
                             >
-                                <Avatar name={TEACHER.nombre} size="sm" variant="secondary" />
+                                <Avatar name={nombreUsuario} size="sm" variant="secondary" />
                                 <div className="hidden sm:block text-left">
-                                    <p className="text-xs font-bold text-[#3d3d3d] leading-tight truncate max-w-[120px]">{TEACHER.nombre}</p>
+                                    <p className="text-xs font-bold text-[#3d3d3d] leading-tight truncate max-w-[120px]">{nombreUsuario}</p>
                                     <p className="text-[10px] text-gray-400 leading-tight">Docente</p>
                                 </div>
                                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className={`text-gray-400 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`}>
@@ -200,8 +243,8 @@ export default function TeacherShell({ children }) {
                             {userMenuOpen && (
                                 <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-50 anim-slide-down">
                                     <div className="px-4 py-3 border-b border-gray-50">
-                                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{TEACHER.nombre}</p>
-                                        <p className="text-[10px] text-gray-400 mt-0.5">Docente · Emp. {TEACHER.empleado}</p>
+                                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{nombreUsuario}</p>
+                                        <p className="text-[10px] text-gray-400 mt-0.5">Docente · Emp. {empleado}</p>
                                     </div>
                                     <button
                                         onClick={() => { navigate('/maestro/perfil'); setUserMenuOpen(false) }}
@@ -269,7 +312,7 @@ function BrandLogo() {
     )
 }
 
-function SidebarContent({ navigate, onNavClick }) {
+function SidebarContent({ navigate, onNavClick, nombre }) {
     return (
         <div className="flex flex-col h-full">
             <div className="px-3 flex-1 overflow-y-auto">
@@ -301,9 +344,9 @@ function SidebarContent({ navigate, onNavClick }) {
                     className="flex items-center gap-3 bg-[#EBE9E1] rounded-xl px-3 py-2.5 cursor-pointer hover:bg-[#e0ddd5] transition-colors duration-200"
                     onClick={() => navigate('/maestro/perfil')}
                 >
-                    <Avatar name={TEACHER.nombre} size="sm" variant="secondary" />
+                    <Avatar name={nombre} size="sm" variant="secondary" />
                     <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{TEACHER.nombre}</p>
+                        <p className="text-xs font-bold text-[#3d3d3d] truncate">{nombre}</p>
                         <p className="text-[10px] text-gray-400">Docente</p>
                     </div>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

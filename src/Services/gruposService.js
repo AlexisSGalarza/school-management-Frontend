@@ -6,4 +6,5 @@ export const gruposService = {
     create: (data) => api.post('api/grupos/', data),
     update: (id, data) => api.put(`api/grupos/${id}/`, data),
     remove: (id) => api.delete(`api/grupos/${id}/`),
+    joinByCode: (codigo) => api.post('api/grupos/join-by-code/', { codigo }),
 };
