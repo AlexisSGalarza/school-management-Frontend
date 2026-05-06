@@ -41,7 +41,7 @@ export default function PerfilMaestroPage() {
                 const gruposList = Array.isArray(grupos) ? grupos : grupos.results ?? []
                 const inscList = Array.isArray(inscripciones) ? inscripciones : inscripciones.results ?? []
                 const tareasList = Array.isArray(tareas) ? tareas : tareas.results ?? []
-                const misGrupos = gruposList.filter(g => g.docente === user?.id)
+                const misGrupos = gruposList.filter(g => String(g.docente) === String(user?.id))
                 const misGrupoIds = new Set(misGrupos.map(g => g.id))
                 const alumnosUnicos = new Set(
                     inscList.filter(i => misGrupoIds.has(i.grupo)).map(i => i.alumno)

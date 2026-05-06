@@ -23,10 +23,12 @@ export default function MateriasDocentePage() {
                 const materiasList = Array.isArray(materiasRes) ? materiasRes : materiasRes.results ?? []
 
                 const misMateriaIds = new Set(
-                    gruposList.filter(g => g.docente === user?.id).map(g => g.materia)
+                    gruposList.filter(g => String(g.docente) === String(user?.id)).map(g => g.materia)
                 )
                 setMaterias(materiasList.filter(m => misMateriaIds.has(m.id)))
-            } catch { /* ignore */ }
+            } catch (err) {
+                console.error('Error cargando materias:', err)
+            }
             setLoading(false)
         }
         if (user?.id) fetchData()

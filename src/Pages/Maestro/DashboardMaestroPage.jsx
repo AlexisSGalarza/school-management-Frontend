@@ -19,9 +19,10 @@ export default function DashboardMaestroPage() {
     const [actividad, setActividad] = useState([])
     const [loading, setLoading] = useState(true)
 
-    const nombre = user?.nombre ?? user?.first_name ?? 'Docente'
+    const nombre = user?.nombre || [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || user?.email || 'Docente'
 
     useEffect(() => {
+        if (!user?.id) return
         async function load() {
             try {
                 const [grupos, entregas, inscripciones, tareas] = await Promise.all([
@@ -35,7 +36,7 @@ export default function DashboardMaestroPage() {
                 const inscList = Array.isArray(inscripciones) ? inscripciones : inscripciones.results ?? []
                 const tareasList = Array.isArray(tareas) ? tareas : tareas.results ?? []
 
-                const misGrupos = gruposList.filter(g => g.docente === user?.id)
+                const misGrupos = gruposList.filter(g => String(g.docente) === String(user.id))
                 const misGrupoIds = new Set(misGrupos.map(g => g.id))
                 const tareaToGrupo = Object.fromEntries(tareasList.map(t => [t.id, t.grupo]))
                 const tareaToMateria = Object.fromEntries(tareasList.map(t => [t.id, t.materia_nombre]))
@@ -77,7 +78,9 @@ export default function DashboardMaestroPage() {
                         tiempo: e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleString('es-MX') : '',
                     }))
                 setActividad(recientes)
-            } catch { /* ignore */ }
+            } catch (err) {
+                console.error('Error cargando dashboard docente:', err)
+            }
             setLoading(false)
         }
         load()

@@ -33,7 +33,7 @@ export default function MisGruposPage() {
             const tareaToGrupo = Object.fromEntries(tareasList.map(t => [t.id, t.grupo]))
 
             const misGrupos = gruposList
-                .filter(g => g.docente === user?.id)
+                .filter(g => String(g.docente) === String(user?.id))
                 .map((g, i) => {
                     const alumnos = inscList.filter(ins => ins.grupo === g.id).length
                     const pendientes = entregasList.filter(e =>
@@ -49,11 +49,13 @@ export default function MisGruposPage() {
                     }
                 })
             setGrupos(misGrupos)
-        } catch { /* ignore */ }
+        } catch (err) {
+            console.error('Error cargando grupos:', err)
+        }
         setLoading(false)
     }
 
-    useEffect(() => { fetchGrupos() }, [user])
+    useEffect(() => { if (user?.id) fetchGrupos() }, [user])
 
     return (
         <TeacherShell>
