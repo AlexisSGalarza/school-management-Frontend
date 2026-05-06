@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, UsersRound, X } from 'lucide-react'
+import { UsersRound } from 'lucide-react'
 import TeacherShell from '../../Components/Layout/TeacherShell'
 import Badge from '../../Components/UI/Badge'
 import { useAuth } from '../../Context/AuthContext'
 import { gruposService } from '../../Services/gruposService'
 import { inscripcionesService } from '../../Services/inscripcionesService'
 import { entregasService } from '../../Services/entregasService'
+import { tareasService } from '../../Services/tareasService'
 
 const COLORS = ['#E43D12', '#EFB11D', '#D6536D', '#FFA2B6', '#7c3aed', '#10b981', '#3b82f6']
 
@@ -15,29 +16,33 @@ export default function MisGruposPage() {
     const { user } = useAuth()
     const [grupos, setGrupos] = useState([])
     const [loading, setLoading] = useState(true)
-    const [showModal, setShowModal] = useState(false)
-    const [form, setForm] = useState({ materia: '', grupo: '' })
 
     async function fetchGrupos() {
         try {
-            const [gRes, iRes, eRes] = await Promise.all([
+            const [gRes, iRes, eRes, tRes] = await Promise.all([
                 gruposService.getAll(),
                 inscripcionesService.getAll(),
                 entregasService.getAll(),
+                tareasService.getAll(),
             ])
             const gruposList = Array.isArray(gRes) ? gRes : gRes.results ?? []
             const inscList = Array.isArray(iRes) ? iRes : iRes.results ?? []
             const entregasList = Array.isArray(eRes) ? eRes : eRes.results ?? []
+            const tareasList = Array.isArray(tRes) ? tRes : tRes.results ?? []
+
+            const tareaToGrupo = Object.fromEntries(tareasList.map(t => [t.id, t.grupo]))
 
             const misGrupos = gruposList
                 .filter(g => g.docente === user?.id)
                 .map((g, i) => {
                     const alumnos = inscList.filter(ins => ins.grupo === g.id).length
-                    const pendientes = entregasList.filter(e => e.grupo === g.id && e.calificacion == null).length
+                    const pendientes = entregasList.filter(e =>
+                        tareaToGrupo[e.tarea] === g.id && e.calificacion == null
+                    ).length
                     return {
                         id: g.id,
-                        materia: g.materia_nombre ?? g.nombre ?? '',
-                        grupo: g.clave ?? g.nombre ?? '',
+                        materia: g.materia_nombre ?? '',
+                        grupo: g.nombre ?? '',
                         alumnos,
                         pendientes,
                         color: COLORS[i % COLORS.length],
@@ -50,16 +55,6 @@ export default function MisGruposPage() {
 
     useEffect(() => { fetchGrupos() }, [user])
 
-    async function handleCreateGrupo() {
-        if (!form.materia || !form.grupo) return
-        try {
-            await gruposService.create({ nombre: form.materia, clave: form.grupo })
-            setShowModal(false)
-            setForm({ materia: '', grupo: '' })
-            fetchGrupos()
-        } catch { /* ignore */ }
-    }
-
     return (
         <TeacherShell>
             <div className="max-w-6xl mx-auto space-y-6">
@@ -70,14 +65,6 @@ export default function MisGruposPage() {
                         <h1 className="text-2xl font-bold text-[#3d3d3d]">Mis Grupos</h1>
                         <p className="text-sm text-gray-400 mt-0.5">{grupos.length} grupos activos este ciclo</p>
                     </div>
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                        style={{ background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)' }}
-                    >
-                        <span className="text-base leading-none"><Plus size={16} /></span>
-                        Nuevo Grupo
-                    </button>
                 </div>
 
                 {/* Grid de grupos */}
@@ -132,64 +119,6 @@ export default function MisGruposPage() {
                     ))}
                 </div>
             </div>
-
-            {/* Modal Nuevo Grupo */}
-            {showModal && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 anim-fade">
-                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowModal(false)} />
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm anim-modal-in">
-                        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base" style={{ background: '#E43D1218' }}><Plus size={16} /></div>
-                                <h2 className="text-base font-bold text-[#3d3d3d]">Nuevo Grupo</h2>
-                            </div>
-                            <button
-                                onClick={() => setShowModal(false)}
-                                className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-[#EBE9E1] hover:text-[#E43D12] transition-all text-sm"
-                            ><X size={16} /></button>
-                        </div>
-                        <div className="px-6 pb-6 pt-5 space-y-4">
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 block mb-1">Nombre de la materia</label>
-                                <input
-                                    type="text"
-                                    placeholder="Ej. Programación Orientada a Objetos"
-                                    value={form.materia}
-                                    onChange={e => setForm(p => ({ ...p, materia: e.target.value }))}
-                                    className="w-full text-sm px-4 py-2.5 rounded-xl border-2 border-transparent outline-none transition-colors"
-                                    style={{ backgroundColor: 'var(--color-background)' }}
-                                    onFocus={e => e.target.style.borderColor = '#FFA2B6'}
-                                    onBlur={e => e.target.style.borderColor = 'transparent'}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs font-semibold text-gray-500 block mb-1">Clave del grupo</label>
-                                <input
-                                    type="text"
-                                    placeholder="Ej. 401"
-                                    value={form.grupo}
-                                    onChange={e => setForm(p => ({ ...p, grupo: e.target.value }))}
-                                    className="w-full text-sm px-4 py-2.5 rounded-xl border-2 border-transparent outline-none transition-colors"
-                                    style={{ backgroundColor: 'var(--color-background)' }}
-                                    onFocus={e => e.target.style.borderColor = '#FFA2B6'}
-                                    onBlur={e => e.target.style.borderColor = 'transparent'}
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-1">
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    className="flex-1 py-2.5 rounded-full border-2 border-gray-200 text-sm font-semibold text-gray-500 hover:border-gray-300 transition-colors"
-                                >Cancelar</button>
-                                <button
-                                    onClick={handleCreateGrupo}
-                                    className="flex-1 py-2.5 rounded-full text-sm font-semibold text-white transition-opacity hover:opacity-90"
-                                    style={{ backgroundColor: 'var(--color-primary)' }}
-                                >Crear Grupo</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </TeacherShell>
     )
 }

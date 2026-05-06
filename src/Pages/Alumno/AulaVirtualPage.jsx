@@ -11,6 +11,7 @@ import { publicacionesService } from '../../Services/publicacionesService'
 import { comentariosService } from '../../Services/comentariosService'
 import { tareasService } from '../../Services/tareasService'
 import { materialesService } from '../../Services/materialesService'
+import { entregasService } from '../../Services/entregasService'
 import { useAuth } from '../../Context/AuthContext'
 
 const TABS = [
@@ -35,12 +36,13 @@ export default function AulaVirtualPage() {
     useEffect(() => {
         async function fetchData() {
             try {
-                const [grupoData, pubsData, tareasData, matsData, comsData] = await Promise.all([
+                const [grupoData, pubsData, tareasData, matsData, comsData, entregasData] = await Promise.all([
                     gruposService.getById(id),
                     publicacionesService.getAll(),
                     tareasService.getAll(),
                     materialesService.getAll(),
                     comentariosService.getAll(),
+                    entregasService.getAll(),
                 ])
                 setGrupo(grupoData)
 
@@ -54,7 +56,11 @@ export default function AulaVirtualPage() {
                 pubs.forEach(p => { comsMap[p.id] = coms.filter(c => String(c.publicacion) === String(p.id)) })
                 setComentariosMap(comsMap)
 
-                const tars = (Array.isArray(tareasData) ? tareasData : tareasData.results ?? []).filter(t => String(t.grupo) === String(id))
+                const entregas = Array.isArray(entregasData) ? entregasData : entregasData.results ?? []
+                const tareasEntregadas = new Set(entregas.map(e => e.tarea))
+                const tars = (Array.isArray(tareasData) ? tareasData : tareasData.results ?? [])
+                    .filter(t => String(t.grupo) === String(id))
+                    .map(t => ({ ...t, entregada: tareasEntregadas.has(t.id) }))
                 setTareasList(tars)
 
                 const mats = (Array.isArray(matsData) ? matsData : matsData.results ?? []).filter(m => String(m.grupo) === String(id))
@@ -98,7 +104,7 @@ export default function AulaVirtualPage() {
                 >
                     <div className="flex items-start justify-between">
                         <div>
-                            <p className="text-white/70 text-xs mb-1">{grupo?.clave ?? grupo?.codigo ?? '—'}</p>
+                            <p className="text-white/70 text-xs mb-1">{grupo?.nombre ?? grupo?.codigo ?? '—'}</p>
                             <h1 className="text-2xl font-bold">{grupo?.materia_nombre ?? '—'}</h1>
                             <p className="text-white/80 text-sm mt-1"><UserCheck size={14} className="inline" /> {grupo?.docente_nombre ?? '—'} · {grupo?.alumnos?.length ?? 0} alumnos</p>
                         </div>
@@ -151,9 +157,9 @@ function CanalTab({ publicaciones, comentarios, inputs, setInputs, onComment, us
                         <Avatar name={pub.autor_nombre ?? pub.autor ?? '—'} size="md" />
                         <div className="flex-1">
                             <div className="bg-[#EBE9E1] rounded-2xl rounded-tl-none p-4">
-                                <p className="text-xs font-bold" style={{ color: 'var(--color-secondary)' }}>{pub.autor_nombre ?? pub.autor ?? '—'} · {pub.fecha ?? pub.created_at ?? ''}</p>
+                                <p className="text-xs font-bold" style={{ color: 'var(--color-secondary)' }}>{pub.autor_nombre ?? '—'} · {pub.created_at ? new Date(pub.created_at).toLocaleString('es-MX') : ''}</p>
                                 <p className="text-sm font-semibold text-[#3d3d3d] mt-0.5">{pub.titulo}</p>
-                                <p className="text-sm text-gray-600 mt-2 leading-relaxed">{pub.contenido ?? pub.texto}</p>
+                                <p className="text-sm text-gray-600 mt-2 leading-relaxed">{pub.contenido}</p>
                             </div>
                         </div>
                     </div>
@@ -200,7 +206,7 @@ function TareasTab({ tareas, navigate }) {
     return (
         <div className="space-y-3">
             {tareas.map(tarea => {
-                const fechaLimite = tarea.fechaLimite ?? tarea.fecha_limite
+                const fechaLimite = tarea.fecha_limite
                 const urgent = fechaLimite ? (new Date(fechaLimite) - new Date()) / (1000 * 60 * 60) <= 48 : false
                 return (
                     <div

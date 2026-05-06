@@ -29,4 +29,14 @@ export const authService = {
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
     },
+
+    async changePassword(actual, nueva) {
+        const token = localStorage.getItem('access_token');
+        const { data } = await axios.post(
+            `${BASE_URL}api/users/change-password/`,
+            { actual, nueva },
+            { headers: { Authorization: `Bearer ${token}` } },
+        );
+        return data;
+    },
 };

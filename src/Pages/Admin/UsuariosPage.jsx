@@ -147,7 +147,7 @@ export default function UsuariosPage() {
         const errs = validateEdit(editForm)
         if (Object.keys(errs).length) { setEditErrors(errs); return }
         try {
-            const updated = await usersService.update(editUser.id, {
+            const updated = await usersService.patch(editUser.id, {
                 nombre: editForm.nombre.trim(),
                 email: editForm.email.trim(),
                 matricula: parseInt(editForm.matricula.trim(), 10),
@@ -166,7 +166,7 @@ export default function UsuariosPage() {
     async function toggleActivo(id) {
         const u = users.find(x => x.id === id)
         try {
-            await usersService.update(id, { activo: !u.activo })
+            await usersService.patch(id, { activo: !u.activo })
             setUsers(prev => prev.map(x => x.id === id ? { ...x, activo: !x.activo } : x))
             addToast(`${u?.nombre}: ${u?.activo ? 'desactivado' : 'activado'}`, u?.activo ? 'warning' : 'success')
         } catch (err) {

@@ -63,7 +63,7 @@ export default function ReportesPage() {
 
     const alumnosOptions = useMemo(() => [
         { value: '', label: 'Todos los alumnos' },
-        ...allUsers.filter(u => u.rol === 'Alumno').map(u => ({ value: String(u.id), label: `${u.nombre} (${u.matricula})` }))
+        ...allUsers.filter(u => u.rol === 'alumno').map(u => ({ value: String(u.id), label: `${u.nombre} (${u.matricula})` }))
     ], [allUsers])
 
     const materiasOptions = useMemo(() => [
@@ -86,7 +86,7 @@ export default function ReportesPage() {
         const fmtLabel = FORMATOS.find(f => f.value === filters.formato)?.label ?? filters.formato
         const alumnoLabel = allUsers.find(u => String(u.id) === filters.alumnoId)?.nombre ?? 'Todos'
         const materiaLabel = materias.find(m => String(m.id) === filters.materiaId)?.nombre ?? 'Todas'
-        const grupoLabel = grupos.find(g => String(g.id) === filters.grupoId)?.clave ?? 'Todos'
+        const grupoLabel = grupos.find(g => String(g.id) === filters.grupoId)?.nombre ?? 'Todos'
 
         addTask({
             titulo: tipoLabel,
@@ -160,7 +160,7 @@ export default function ReportesPage() {
                                     value={filters.grupoId}
                                     onChange={handleChange}
                                     type="select"
-                                    options={[{ value: '', label: 'Todos los grupos' }, ...grupos.map(g => ({ value: String(g.id), label: `${g.clave} – ${g.materia}` }))]}
+                                    options={[{ value: '', label: 'Todos los grupos' }, ...grupos.map(g => ({ value: String(g.id), label: `${g.nombre} – ${g.materia_nombre ?? ''}` }))]}
                                 />
                             )}
                             <FormField

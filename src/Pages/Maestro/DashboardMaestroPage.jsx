@@ -9,6 +9,7 @@ import { useAuth } from '../../Context/AuthContext'
 import { gruposService } from '../../Services/gruposService'
 import { entregasService } from '../../Services/entregasService'
 import { inscripcionesService } from '../../Services/inscripcionesService'
+import { tareasService } from '../../Services/tareasService'
 
 export default function DashboardMaestroPage() {
     const navigate = useNavigate()
@@ -23,18 +24,25 @@ export default function DashboardMaestroPage() {
     useEffect(() => {
         async function load() {
             try {
-                const [grupos, entregas, inscripciones] = await Promise.all([
+                const [grupos, entregas, inscripciones, tareas] = await Promise.all([
                     gruposService.getAll(),
                     entregasService.getAll(),
                     inscripcionesService.getAll(),
+                    tareasService.getAll(),
                 ])
                 const gruposList = Array.isArray(grupos) ? grupos : grupos.results ?? []
                 const entregasList = Array.isArray(entregas) ? entregas : entregas.results ?? []
                 const inscList = Array.isArray(inscripciones) ? inscripciones : inscripciones.results ?? []
+                const tareasList = Array.isArray(tareas) ? tareas : tareas.results ?? []
 
                 const misGrupos = gruposList.filter(g => g.docente === user?.id)
                 const misGrupoIds = new Set(misGrupos.map(g => g.id))
-                const sinCalificar = entregasList.filter(e => e.calificacion == null && misGrupoIds.has(e.grupo))
+                const tareaToGrupo = Object.fromEntries(tareasList.map(t => [t.id, t.grupo]))
+                const tareaToMateria = Object.fromEntries(tareasList.map(t => [t.id, t.materia_nombre]))
+
+                const sinCalificar = entregasList.filter(e =>
+                    e.calificacion == null && misGrupoIds.has(tareaToGrupo[e.tarea])
+                )
                 const alumnosUnicos = new Set(inscList.filter(i => misGrupoIds.has(i.grupo)).map(i => i.alumno))
 
                 setStats([
@@ -44,11 +52,13 @@ export default function DashboardMaestroPage() {
                 ])
 
                 const pendientes = misGrupos.map(g => {
-                    const p = entregasList.filter(e => e.grupo === g.id && e.calificacion == null)
+                    const p = entregasList.filter(e =>
+                        tareaToGrupo[e.tarea] === g.id && e.calificacion == null
+                    )
                     return {
                         id: g.id,
-                        grupo: g.clave ?? g.nombre ?? '',
-                        materia: g.materia_nombre ?? g.nombre ?? '',
+                        grupo: g.nombre ?? '',
+                        materia: g.materia_nombre ?? '',
                         pendientes: p.length,
                         vencidas: 0,
                     }
@@ -56,15 +66,15 @@ export default function DashboardMaestroPage() {
                 setPendientesPorGrupo(pendientes)
 
                 const recientes = entregasList
-                    .filter(e => misGrupoIds.has(e.grupo))
-                    .sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0))
+                    .filter(e => misGrupoIds.has(tareaToGrupo[e.tarea]))
+                    .sort((a, b) => new Date(b.fecha_entrega ?? 0) - new Date(a.fecha_entrega ?? 0))
                     .slice(0, 5)
                     .map(e => ({
                         id: e.id,
                         alumno: e.alumno_nombre ?? `Alumno ${e.alumno}`,
                         accion: 'entregó una tarea',
-                        materia: e.materia_nombre ?? '',
-                        tiempo: e.created_at ? new Date(e.created_at).toLocaleString('es-MX') : '',
+                        materia: tareaToMateria[e.tarea] ?? '',
+                        tiempo: e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleString('es-MX') : '',
                     }))
                 setActividad(recientes)
             } catch { /* ignore */ }

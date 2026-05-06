@@ -11,6 +11,7 @@ import { materialesService } from '../../Services/materialesService'
 import { publicacionesService } from '../../Services/publicacionesService'
 import { comentariosService } from '../../Services/comentariosService'
 import { tareasService } from '../../Services/tareasService'
+import { entregasService } from '../../Services/entregasService'
 import { usersService } from '../../Services/usersService'
 import { uploadService } from '../../Services/uploadService'
 import { useAuth } from '../../Context/AuthContext'
@@ -44,10 +45,11 @@ export default function PanelGrupoPage() {
                 const grupoData = await gruposService.getById(id)
                 setGrupo(grupoData)
 
-                const [matsData, pubsData, tareasData] = await Promise.all([
+                const [matsData, pubsData, tareasData, entregasData] = await Promise.all([
                     materialesService.getAll(),
                     publicacionesService.getAll(),
                     tareasService.getAll(),
+                    entregasService.getAll(),
                 ])
                 const mats = Array.isArray(matsData) ? matsData : matsData.results ?? []
                 setMateriales(mats.filter(m => String(m.grupo) === String(id)))
@@ -68,14 +70,62 @@ export default function PanelGrupoPage() {
                 setComentariosMap(comsMap)
 
                 const tars = Array.isArray(tareasData) ? tareasData : tareasData.results ?? []
-                setTareasList(tars.filter(t => String(t.grupo) === String(id)))
+                const tareasGrupo = tars.filter(t => String(t.grupo) === String(id))
+                setTareasList(tareasGrupo)
 
-                // Load student details
+                // Compute per-student stats from entregas
+                const entregasList = Array.isArray(entregasData) ? entregasData : entregasData.results ?? []
+                const tareaIdsDelGrupo = new Set(tareasGrupo.map(t => t.id))
+                const totalTareas = tareasGrupo.length
+                // Filter entregas that belong to tasks in this group
+                const entregasGrupo = entregasList.filter(e => tareaIdsDelGrupo.has(e.tarea))
+
+                // Load student details and compute stats
                 if (grupoData.alumnos?.length) {
                     const usersData = await usersService.getAll()
                     const users = Array.isArray(usersData) ? usersData : usersData.results ?? []
-                    setAlumnosList(users.filter(u => grupoData.alumnos.includes(u.id)))
+                    const alumnosConStats = users
+                        .filter(u => grupoData.alumnos.includes(u.id))
+                        .map(u => {
+                            const misEntregas = entregasGrupo.filter(e => e.alumno === u.id)
+                            // Unique tasks with at least one entrega
+                            const tareasEntregadas = new Set(misEntregas.map(e => e.tarea))
+                            const entregadas = tareasEntregadas.size
+                            const pendientes = Math.max(0, totalTareas - entregadas)
+                            // Average: for each task, take the latest entrega's calificacion
+                            const calificaciones = []
+                            tareasEntregadas.forEach(tareaId => {
+                                const entregasTarea = misEntregas
+                                    .filter(e => e.tarea === tareaId)
+                                    .sort((a, b) => new Date(b.fecha_entrega ?? 0) - new Date(a.fecha_entrega ?? 0))
+                                const ultima = entregasTarea[0]
+                                if (ultima && ultima.calificacion != null) {
+                                    calificaciones.push(Number(ultima.calificacion))
+                                }
+                            })
+                            const promedio = calificaciones.length > 0
+                                ? calificaciones.reduce((sum, c) => sum + c, 0) / calificaciones.length
+                                : null
+                            return { ...u, entregadas, pendientes, promedio }
+                        })
+                    setAlumnosList(alumnosConStats)
                 }
+
+                // Compute per-task stats (entregas count, calificadas count)
+                setTareasList(tareasGrupo.map(t => {
+                    const entregasTarea = entregasGrupo.filter(e => e.tarea === t.id)
+                    // Count unique alumnos who submitted
+                    const alumnosEntregaron = new Set(entregasTarea.map(e => e.alumno))
+                    // Count unique alumnos whose latest entrega has a calificacion
+                    let calificadasCount = 0
+                    alumnosEntregaron.forEach(alumnoId => {
+                        const entregasAlumno = entregasTarea
+                            .filter(e => e.alumno === alumnoId)
+                            .sort((a, b) => new Date(b.fecha_entrega ?? 0) - new Date(a.fecha_entrega ?? 0))
+                        if (entregasAlumno[0]?.calificacion != null) calificadasCount++
+                    })
+                    return { ...t, entregas: alumnosEntregaron.size, calificadas: calificadasCount }
+                }))
             } catch (err) {
                 console.error('Error cargando panel de grupo:', err)
             } finally {
@@ -200,8 +250,8 @@ export default function PanelGrupoPage() {
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 18l-6-6 6-6" /></svg>
                                 Mis Grupos
                             </button>
-                            <h1 className="text-2xl font-bold text-[#3d3d3d]">{grupo?.materia ?? '—'}</h1>
-                            <p className="text-sm text-gray-400 mt-0.5">Grupo {grupo?.clave ?? '—'} · {grupo?.alumnos?.length ?? 0} alumnos</p>
+                            <h1 className="text-2xl font-bold text-[#3d3d3d]">{grupo?.materia_nombre ?? '—'}</h1>
+                            <p className="text-sm text-gray-400 mt-0.5">Grupo {grupo?.nombre ?? '—'} · {grupo?.alumnos?.length ?? 0} alumnos</p>
                         </div>
                         <button
                             onClick={() => navigate(`/maestro/grupos/${id}/calificacion`)}
@@ -600,12 +650,16 @@ export default function PanelGrupoPage() {
                                                         }
                                                     </td>
                                                     <td className="px-4 py-3.5 text-center">
-                                                        <span
-                                                            className="text-base font-black"
-                                                            style={{ color: (a.promedio ?? 0) >= 9 ? '#10b981' : (a.promedio ?? 0) >= 7 ? 'var(--color-warning)' : 'var(--color-primary)' }}
-                                                        >
-                                                            {(a.promedio ?? 0).toFixed(1)}
-                                                        </span>
+                                                        {a.promedio != null ? (
+                                                            <span
+                                                                className="text-base font-black"
+                                                                style={{ color: a.promedio >= 9 ? '#10b981' : a.promedio >= 7 ? 'var(--color-warning)' : 'var(--color-primary)' }}
+                                                            >
+                                                                {a.promedio.toFixed(1)}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-400">—</span>
+                                                        )}
                                                     </td>
                                                     <td className="px-4 py-3.5 text-right">
                                                         <button

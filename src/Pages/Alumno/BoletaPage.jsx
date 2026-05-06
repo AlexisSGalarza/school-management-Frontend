@@ -52,21 +52,22 @@ export default function BoletaPage() {
                     const tareasGrupo = tareasList.filter(t => t.grupo === g.id)
                     return {
                         grupoId: g.id,
-                        clave: g.clave ?? g.nombre?.substring(0, 7) ?? '',
-                        materia: g.materia_nombre ?? g.nombre ?? '',
+                        clave: g.nombre ?? '',
+                        materia: g.materia_nombre ?? '',
                         color: COLORS[i % COLORS.length],
                         docente: g.docente_nombre ?? '',
                         tareas: tareasGrupo.map(t => {
                             const entrega = entregasList
                                 .filter(e => e.tarea === t.id && e.alumno === user?.id)
-                                .sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0))[0]
+                                .sort((a, b) => new Date(b.fecha_entrega ?? 0) - new Date(a.fecha_entrega ?? 0))[0]
+                            const cal = entrega?.calificacion
                             return {
                                 id: t.id,
                                 titulo: t.titulo,
                                 fechaLimite: t.fecha_limite,
-                                calificacion: entrega?.calificacion ?? null,
-                                fechaEntrega: entrega?.created_at
-                                    ? new Date(entrega.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+                                calificacion: cal == null ? null : Number(cal),
+                                fechaEntrega: entrega?.fecha_entrega
+                                    ? new Date(entrega.fecha_entrega).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
                                     : null,
                             }
                         }),

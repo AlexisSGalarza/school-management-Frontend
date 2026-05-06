@@ -35,7 +35,7 @@ export default function AppShell({ children }) {
     const [avisos, setAvisos] = useState([])
     const [readIds, setReadIds] = useState(() => new Set(JSON.parse(localStorage.getItem('avisos_leidos_alumno') || '[]')))
 
-    const nombreUsuario = user?.nombre || user?.email || 'Alumno'
+    const nombreUsuario = user?.nombre || [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || user?.email || 'Alumno'
     const cicloNombre = cicloActivo?.nombre || 'Sin ciclo activo'
 
     const bellRef = useRef(null)
@@ -95,7 +95,7 @@ export default function AppShell({ children }) {
                 <div className="px-5 py-5">
                     <BrandLogo />
                 </div>
-                <SidebarContent navigate={navigate} nombre={nombreUsuario} />
+                <SidebarContent navigate={navigate} nombre={nombreUsuario} ciclo={cicloNombre} />
             </aside>
 
             {/* ── DRAWER MOBILE ── */}
@@ -107,7 +107,7 @@ export default function AppShell({ children }) {
                             <BrandLogo />
                             <button onClick={() => setMobileOpen(false)} className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-400 hover:bg-white hover:text-[#E43D12] transition-all">✕</button>
                         </div>
-                        <SidebarContent navigate={navigate} nombre={nombreUsuario} onNavClick={() => setMobileOpen(false)} />
+                        <SidebarContent navigate={navigate} nombre={nombreUsuario} ciclo={cicloNombre} onNavClick={() => setMobileOpen(false)} />
                     </aside>
                 </div>
             )}
@@ -324,14 +324,14 @@ function BrandLogo() {
                 SE
             </div>
             <div>
-                <p className="font-black text-sm text-[#3d3d3d] leading-tight">Falta</p>
-                <p className="font-black text-sm leading-tight" style={{ color: 'var(--color-primary)' }}>Nombre</p>
+                <p className="font-black text-sm text-[#3d3d3d] leading-tight">Sistema</p>
+                <p className="font-black text-sm leading-tight" style={{ color: 'var(--color-primary)' }}>Escolar</p>
             </div>
         </div>
     )
 }
 
-function SidebarContent({ navigate, onNavClick, nombre }) {
+function SidebarContent({ navigate, onNavClick, nombre, ciclo }) {
     return (
         <div className="flex flex-col h-full">
             {/* Sección nav */}
@@ -373,7 +373,7 @@ function SidebarContent({ navigate, onNavClick, nombre }) {
                     <Avatar name={nombre} size="sm" />
                     <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold text-[#3d3d3d] truncate">{nombre}</p>
-                        <p className="text-[10px] text-gray-400">Alumno</p>
+                        <p className="text-[10px] text-gray-400">Alumno · {ciclo}</p>
                     </div>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M9 18l6-6-6-6" />

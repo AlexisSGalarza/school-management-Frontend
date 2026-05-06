@@ -8,6 +8,7 @@ import FormField from '../../Components/UI/FormField'
 import { useAuth } from '../../Context/AuthContext'
 import { useToast } from '../../Context/ToastContext'
 import { usersService } from '../../Services/usersService'
+import { authService } from '../../Services/authService'
 
 function validateEdit(form) {
     const errors = {}
@@ -19,6 +20,7 @@ function validateEdit(form) {
 
 function validatePass(form) {
     const errors = {}
+    if (!form.actual) errors.actual = 'Ingresa tu contrasena actual'
     if (!form.nueva) errors.nueva = 'La nueva contrasena es requerida'
     else if (form.nueva.length < 6) errors.nueva = 'Minimo 6 caracteres'
     if (form.nueva !== form.confirm) errors.confirm = 'Las contrasenas no coinciden'
@@ -31,7 +33,7 @@ export default function PerfilAdminPage() {
     const [editModal, setEditModal] = useState(false)
     const [passModal, setPassModal] = useState(false)
     const [editForm, setEditForm] = useState({})
-    const [passForm, setPassForm] = useState({ nueva: '', confirm: '' })
+    const [passForm, setPassForm] = useState({ actual: '', nueva: '', confirm: '' })
     const [editErrors, setEditErrors] = useState({})
     const [passErrors, setPassErrors] = useState({})
 
@@ -54,11 +56,9 @@ export default function PerfilAdminPage() {
         const errs = validateEdit(editForm)
         if (Object.keys(errs).length) { setEditErrors(errs); return }
         try {
-            await usersService.update(user.id, {
+            await usersService.patch(user.id, {
                 nombre: editForm.nombre.trim(),
                 email: editForm.email.trim(),
-                matricula: user.matricula,
-                rol: user.rol,
             })
             await refreshUser()
             setEditModal(false)
@@ -75,12 +75,13 @@ export default function PerfilAdminPage() {
         const errs = validatePass(passForm)
         if (Object.keys(errs).length) { setPassErrors(errs); return }
         try {
-            await usersService.update(user.id, { password: passForm.nueva })
+            await authService.changePassword(passForm.actual, passForm.nueva)
             setPassModal(false)
-            setPassForm({ nueva: '', confirm: '' })
+            setPassForm({ actual: '', nueva: '', confirm: '' })
             addToast('Contrasena actualizada correctamente')
         } catch (err) {
-            addToast('Error al cambiar la contrasena', 'error')
+            const msg = err?.response?.data?.error || 'Error al cambiar la contrasena'
+            setPassErrors({ actual: msg })
         }
     }
 
@@ -107,7 +108,7 @@ export default function PerfilAdminPage() {
                                     <Pencil size={14} className="inline mr-1" /> Editar perfil
                                 </button>
                                 <button
-                                    onClick={() => { setPassForm({ nueva: '', confirm: '' }); setPassErrors({}); setPassModal(true) }}
+                                    onClick={() => { setPassForm({ actual: '', nueva: '', confirm: '' }); setPassErrors({}); setPassModal(true) }}
                                     className="px-5 py-2 rounded-full text-sm font-semibold border-2 border-gray-200 text-gray-600 hover:border-gray-300 transition-colors"
                                 >
                                     <Lock size={14} className="inline mr-1" /> Cambiar contrasena
@@ -157,6 +158,7 @@ export default function PerfilAdminPage() {
                 maxWidth="max-w-sm"
             >
                 <form onSubmit={handlePassSubmit} className="space-y-4">
+                    <FormField label="Contrasena actual" name="actual" value={passForm.actual} onChange={e => setPassForm(p => ({ ...p, actual: e.target.value }))} error={passErrors.actual} type="password" />
                     <FormField label="Nueva contrasena" name="nueva" value={passForm.nueva} onChange={e => setPassForm(p => ({ ...p, nueva: e.target.value }))} error={passErrors.nueva} type="password" placeholder="Min. 6 caracteres" />
                     <FormField label="Confirmar" name="confirm" value={passForm.confirm} onChange={e => setPassForm(p => ({ ...p, confirm: e.target.value }))} error={passErrors.confirm} type="password" />
                     <div className="flex gap-3 pt-1">

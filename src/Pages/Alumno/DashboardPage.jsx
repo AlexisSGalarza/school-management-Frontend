@@ -37,39 +37,39 @@ export default function DashboardPage() {
                 const pubs = Array.isArray(pubsData) ? pubsData : pubsData.results ?? []
 
                 const misGrupos = grupos.filter(g => (g.alumnos ?? []).includes(user?.id))
-                const misGrupoIds = misGrupos.map(g => g.id)
-                const misTareas = tareas.filter(t => misGrupoIds.includes(t.grupo))
-                const pendientes = misTareas.filter(t => t.estado === 'pendiente' || !t.estado)
+                const misGrupoIds = new Set(misGrupos.map(g => g.id))
+                const misMateriaIds = new Set(misGrupos.map(g => g.materia))
+                const misTareas = tareas.filter(t => misGrupoIds.has(t.grupo))
 
                 setStats([
                     { label: 'Materias inscritas', value: misGrupos.length, icon: <BookOpen size={20} />, color: '#E43D12' },
-                    { label: 'Tareas pendientes', value: pendientes.length, icon: <ClipboardList size={20} />, color: '#EFB11D' },
+                    { label: 'Tareas pendientes', value: misTareas.length, icon: <ClipboardList size={20} />, color: '#EFB11D' },
                     { label: 'Total de tareas', value: misTareas.length, icon: <Upload size={20} />, color: '#D6536D' },
                 ])
 
                 setUrgentTasks(
                     misTareas
-                        .filter(t => t.fechaLimite ?? t.fecha_limite)
-                        .sort((a, b) => new Date(a.fechaLimite ?? a.fecha_limite) - new Date(b.fechaLimite ?? b.fecha_limite))
+                        .filter(t => t.fecha_limite)
+                        .sort((a, b) => new Date(a.fecha_limite) - new Date(b.fecha_limite))
                         .slice(0, 5)
                         .map(t => ({
                             id: t.id,
                             title: t.titulo,
-                            materia: t.materia_nombre ?? t.materia ?? '—',
-                            fecha: t.fechaLimite ?? t.fecha_limite,
+                            materia: t.materia_nombre ?? '—',
+                            fecha: t.fecha_limite,
                         }))
                 )
 
                 setAvisos(
                     pubs
-                        .filter(p => misGrupoIds.includes(p.grupo))
+                        .filter(p => misMateriaIds.has(p.materia))
                         .slice(0, 5)
                         .map(p => ({
                             id: p.id,
-                            titulo: p.titulo ?? p.texto?.slice(0, 50),
-                            autor: p.autor_nombre ?? p.autor ?? '—',
+                            titulo: p.titulo || (p.contenido ?? '').slice(0, 50),
+                            autor: p.autor_nombre ?? '—',
                             materia: p.materia_nombre ?? '—',
-                            tiempo: p.fecha ?? p.created_at ?? '',
+                            tiempo: p.created_at ? new Date(p.created_at).toLocaleString('es-MX') : '',
                         }))
                 )
             } catch (err) {

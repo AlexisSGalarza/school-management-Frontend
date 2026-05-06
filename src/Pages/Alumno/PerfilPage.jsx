@@ -10,7 +10,8 @@ import { useAuth } from '../../Context/AuthContext'
 import { gruposService } from '../../Services/gruposService'
 import { tareasService } from '../../Services/tareasService'
 import { entregasService } from '../../Services/entregasService'
-import { usersService } from '../../Services/usersService'
+import { authService } from '../../Services/authService'
+import { useCicloActivo } from '../../Hooks/useCicloActivo'
 
 export default function PerfilPage() {
     const { user } = useAuth()
@@ -42,11 +43,12 @@ export default function PerfilPage() {
         if (user?.id) load()
     }, [user])
 
-    const nombre = user?.nombre || user?.email || 'Alumno'
+    const cicloActivo = useCicloActivo()
+    const nombre = user?.nombre || [user?.first_name, user?.last_name].filter(Boolean).join(' ') || user?.username || user?.email || 'Alumno'
     const email = user?.email ?? ''
     const matricula = user?.matricula ?? '—'
     const rol = user?.rol ? user.rol.charAt(0).toUpperCase() + user.rol.slice(1) : 'Alumno'
-    const ciclo = ''
+    const ciclo = cicloActivo?.nombre ?? ''
     const createdAt = user?.created_at ?? ''
     const activo = user?.activo ?? true
     const [pwForm, setPwForm] = useState({ actual: '', nueva: '', confirmar: '' })
@@ -73,12 +75,13 @@ export default function PerfilPage() {
         const errs = validatePw()
         if (Object.keys(errs).length) { setPwErrors(errs); return }
         try {
-            await usersService.update(user.id, { password: pwForm.nueva })
+            await authService.changePassword(pwForm.actual, pwForm.nueva)
             setPwSuccess(true)
             setEditingPassword(false)
             setPwForm({ actual: '', nueva: '', confirmar: '' })
         } catch (err) {
-            setPwErrors({ nueva: 'No se pudo actualizar la contrasena' })
+            const msg = err?.response?.data?.error || 'No se pudo actualizar la contrasena'
+            setPwErrors({ actual: msg })
         }
     }
 

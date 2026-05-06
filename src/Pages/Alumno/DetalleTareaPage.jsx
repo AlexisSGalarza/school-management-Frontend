@@ -53,7 +53,7 @@ export default function DetalleTareaPage() {
         fetchData()
     }, [id, user])
 
-    const fechaLimite = tarea?.fechaLimite ?? tarea?.fecha_limite
+    const fechaLimite = tarea?.fecha_limite
     const urgent = fechaLimite ? isUrgent(fechaLimite) : false
 
     function validateFile(file) {
@@ -140,7 +140,7 @@ export default function DetalleTareaPage() {
                         ← Volver
                     </button>
                     <span className="text-gray-200">|</span>
-                    <span className="text-xs text-gray-400">{tarea.materia_nombre ?? tarea.materia ?? '—'}</span>
+                    <span className="text-xs text-gray-400">{tarea.materia_nombre ?? '—'}</span>
                 </div>
 
                 {/* Info de la tarea */}
@@ -148,7 +148,7 @@ export default function DetalleTareaPage() {
                     <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex-1 min-w-0">
                             <h1 className="text-xl font-bold text-[#3d3d3d]">{tarea.titulo}</h1>
-                            <p className="text-xs text-gray-400 mt-1"><UserCheck size={14} className="inline" /> {tarea.docente_nombre ?? tarea.docente ?? '—'} · {tarea.grupo_nombre ?? ''}</p>
+                            <p className="text-xs text-gray-400 mt-1"><UserCheck size={14} className="inline" /> {tarea.docente_nombre ?? '—'} · {tarea.grupo_nombre ?? ''}</p>
                         </div>
                         <div className="flex-shrink-0 text-right">
                             <p className={`text-sm font-bold ${urgent ? 'text-[#EFB11D]' : 'text-gray-400'}`}>
@@ -164,9 +164,10 @@ export default function DetalleTareaPage() {
                 </Card>
 
                 {/* Retroalimentación del docente */}
-                {historial.some(e => e.estado === 'calificado' || e.calificacion != null) && (() => {
-                    const ultima = historial.find(e => e.estado === 'calificado' || e.calificacion != null)
-                    const gradeColor = ultima.calificacion >= 9 ? '#10b981' : ultima.calificacion >= 7 ? '#EFB11D' : '#E43D12'
+                {historial.some(e => e.calificacion != null) && (() => {
+                    const ultima = historial.find(e => e.calificacion != null)
+                    const cal = Number(ultima.calificacion)
+                    const gradeColor = cal >= 9 ? '#10b981' : cal >= 7 ? '#EFB11D' : '#E43D12'
                     return (
                         <Card>
                             <h2 className="text-sm font-bold text-[#3d3d3d] mb-4"><MessageSquare size={16} className="inline" /> Retroalimentación del docente</h2>
@@ -176,13 +177,12 @@ export default function DetalleTareaPage() {
                                     style={{ background: gradeColor + '18' }}
                                 >
                                     <span className="text-2xl font-black" style={{ color: gradeColor }}>
-                                        {ultima.calificacion.toFixed(1)}
+                                        {cal.toFixed(1)}
                                     </span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs text-gray-400 mb-2">Intento #{ultima.intento} · {ultima.fecha}</p>
+                                    <p className="text-xs text-gray-400 mb-2">{ultima.fecha_entrega ? new Date(ultima.fecha_entrega).toLocaleString('es-MX') : ''}</p>
                                     <div className="bg-[#EBE9E1] rounded-2xl rounded-tl-none p-3">
-                                        <p className="text-xs font-bold mb-1" style={{ color: 'var(--color-secondary)' }}>Dr. Martínez</p>
                                         <p className="text-sm text-gray-600 leading-relaxed">{ultima.comentario}</p>
                                     </div>
                                 </div>
@@ -332,24 +332,31 @@ export default function DetalleTareaPage() {
                         </button>
                         {historialOpen && (
                             <div className="mt-4 space-y-2">
-                                {historial.map(e => (
-                                    <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#EBE9E180' }}>
-                                        <span className="text-xl flex-shrink-0">{e.tipo === 'link' ? <Link2 size={20} /> : <Paperclip size={20} />}</span>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-semibold text-[#3d3d3d] truncate">{e.nombre ?? e.archivo ?? 'Entrega'}</p>
-                                            <p className="text-xs text-gray-400">{e.fecha ?? e.created_at ?? ''}{e.tamaño ? ` · ${e.tamaño}` : ''}</p>
+                                {historial.map(e => {
+                                    const cal = e.calificacion == null ? null : Number(e.calificacion)
+                                    const esVideo = !!e.video_url
+                                    return (
+                                        <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: '#EBE9E180' }}>
+                                            <span className="text-xl flex-shrink-0">{esVideo ? <Link2 size={20} /> : <Paperclip size={20} />}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-semibold text-[#3d3d3d] truncate">{e.nombre_archivo || (esVideo ? 'Enlace de video' : 'Entrega')}</p>
+                                                <p className="text-xs text-gray-400">
+                                                    {e.fecha_entrega ? new Date(e.fecha_entrega).toLocaleString('es-MX') : ''}
+                                                    {e.tamano_bytes ? ` · ${(e.tamano_bytes / 1024 / 1024).toFixed(1)} MB` : ''}
+                                                </p>
+                                            </div>
+                                            <div className="text-right flex-shrink-0">
+                                                {cal != null ? (
+                                                    <span className="text-base font-black" style={{ color: cal >= 9 ? '#10b981' : cal >= 7 ? '#EFB11D' : '#E43D12' }}>
+                                                        {cal.toFixed(1)}
+                                                    </span>
+                                                ) : (
+                                                    <Badge variant="muted">Pendiente</Badge>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-right flex-shrink-0">
-                                            {e.calificacion !== null ? (
-                                                <span className="text-base font-black" style={{ color: e.calificacion >= 9 ? '#10b981' : e.calificacion >= 7 ? '#EFB11D' : '#E43D12' }}>
-                                                    {e.calificacion.toFixed(1)}
-                                                </span>
-                                            ) : (
-                                                <Badge variant="muted">Pendiente</Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         )}
                     </Card>

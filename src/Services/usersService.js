@@ -5,5 +5,6 @@ export const usersService = {
     getById: (id) => api.get(`api/users/${id}/`),
     create: (data) => api.post('api/users/', data),
     update: (id, data) => api.put(`api/users/${id}/`, data),
+    patch: (id, data) => api.patch(`api/users/${id}/`, data),
     remove: (id) => api.delete(`api/users/${id}/`),
 };

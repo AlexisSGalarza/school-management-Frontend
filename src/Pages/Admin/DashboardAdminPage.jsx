@@ -246,10 +246,10 @@ export default function DashboardAdminPage() {
                                 {gruposDelCiclo.map(g => (
                                     <tr key={g.id}>
                                         <td className="py-2.5 pr-4">
-                                            <span className="font-bold text-[#3d3d3d]">{g.clave || g.nombre}</span>
+                                            <span className="font-bold text-[#3d3d3d]">{g.nombre}</span>
                                         </td>
-                                        <td className="py-2.5 pr-4 text-gray-500 max-w-[180px] truncate">{g.materia_nombre || g.materia}</td>
-                                        <td className="py-2.5 pr-4 text-gray-500 hidden sm:table-cell">{g.docente_nombre || g.docente}</td>
+                                        <td className="py-2.5 pr-4 text-gray-500 max-w-[180px] truncate">{g.materia_nombre ?? '—'}</td>
+                                        <td className="py-2.5 pr-4 text-gray-500 hidden sm:table-cell">{g.docente_nombre ?? '—'}</td>
                                         <td className="py-2.5">
                                             <span className="text-xs font-bold" style={{ color: 'var(--color-primary)' }}>
                                                 {g.alumnos?.length ?? 0}

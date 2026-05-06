@@ -6,7 +6,6 @@ import AppShell from '../../Components/Layout/AppShell'
 import Badge from '../../Components/UI/Badge'
 import { gruposService } from '../../Services/gruposService'
 import { ciclosService } from '../../Services/ciclosService'
-import { inscripcionesService } from '../../Services/inscripcionesService'
 import { useAuth } from '../../Context/AuthContext'
 
 const COLORES = ['#E43D12', '#D6536D', '#EFB11D', '#FFA2B6', '#7c3aed', '#0891b2']
@@ -14,10 +13,10 @@ const COLORES = ['#E43D12', '#D6536D', '#EFB11D', '#FFA2B6', '#7c3aed', '#0891b2
 function grupoToMateria(g, idx, ciclos) {
     return {
         id: g.id,
-        nombre: g.materia,
-        clave: g.clave,
-        docente: g.docente,
-        grupo: g.clave,
+        nombre: g.materia_nombre ?? '',
+        clave: g.clave ?? '',
+        docente: g.docente_nombre ?? '',
+        grupo: g.nombre ?? '',
         ciclo: (ciclos ?? []).find(c => c.id === g.cicloId)?.nombre ?? '—',
         tareasNuevas: 0,
         color: COLORES[idx % COLORES.length],
@@ -90,7 +89,7 @@ export default function MateriasPage() {
             await gruposService.joinByCode(confirmGrupo.codigo)
             const idx = materias.length
             setMaterias(prev => [...prev, grupoToMateria(confirmGrupo, idx, ciclos)])
-            addToast(`¡Inscrito en ${confirmGrupo.materia} (${confirmGrupo.clave})!`)
+            addToast(`¡Inscrito en ${confirmGrupo.materia_nombre} (${confirmGrupo.nombre})!`)
             setCodigoModal(false)
             setConfirmGrupo(null)
             setCodigo('')
@@ -196,12 +195,12 @@ export default function MateriasPage() {
                                             <p className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--color-primary)' }}>Grupo encontrado</p>
                                         </div>
                                         <div className="space-y-1.5">
-                                            <p className="text-base font-black text-[#3d3d3d] leading-snug">{confirmGrupo.materia}</p>
+                                            <p className="text-base font-black text-[#3d3d3d] leading-snug">{confirmGrupo.materia_nombre}</p>
                                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                                                <span><UserCheck size={14} className="inline" /> {confirmGrupo.docente}</span>
-                                                <span><School size={14} className="inline" /> {confirmGrupo.clave}</span>
+                                                <span><UserCheck size={14} className="inline" /> {confirmGrupo.docente_nombre}</span>
+                                                <span><School size={14} className="inline" /> {confirmGrupo.nombre}</span>
                                                 <span><Calendar size={14} className="inline" /> {ciclos.find(c => c.id === confirmGrupo.cicloId)?.nombre ?? '—'}</span>
-                                                <span><Users size={14} className="inline" /> {(confirmGrupo.alumnos ?? []).length}/{confirmGrupo.capacidad} alumnos</span>
+                                                <span><Users size={14} className="inline" /> {(confirmGrupo.alumnos ?? []).length} alumnos</span>
                                             </div>
                                         </div>
                                     </div>
